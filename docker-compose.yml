@@ -1,0 +1,71 @@
+name: scad
+
+services:
+
+  db-maputo:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: scad
+      POSTGRES_PASSWORD: scad
+    ports: ["5441:5432"]
+    volumes: [dados-maputo:/var/lib/postgresql/data]
+    networks: [scad-net]
+
+  db-beira:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: scad
+      POSTGRES_PASSWORD: scad
+    ports: ["5442:5432"]
+    volumes: [dados-beira:/var/lib/postgresql/data]
+    networks: [scad-net]
+
+  db-nampula:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: scad
+      POSTGRES_PASSWORD: scad
+    ports: ["5443:5432"]
+    volumes: [dados-nampula:/var/lib/postgresql/data]
+    networks: [scad-net]
+
+  agente-maputo:
+    build: ./agente
+    environment:
+      REGIAO: Maputo
+      DB_URL: jdbc:postgresql://db-maputo:5432/scad
+      DB_PASS: scad
+      PARES: http://agente-beira:8080,http://agente-nampula:8080
+    ports: ["8081:8080"]
+    depends_on: [db-maputo]
+    networks: [scad-net]
+
+  agente-beira:
+    build: ./agente
+    environment:
+      REGIAO: Beira
+      DB_URL: jdbc:postgresql://db-beira:5432/scad
+      DB_PASS: scad
+      PARES: http://agente-maputo:8080,http://agente-nampula:8080
+    ports: ["8082:8080"]
+    depends_on: [db-beira]
+    networks: [scad-net]
+
+  agente-nampula:
+    build: ./agente
+    environment:
+      REGIAO: Nampula
+      DB_URL: jdbc:postgresql://db-nampula:5432/scad
+      DB_PASS: scad
+      PARES: http://agente-maputo:8080,http://agente-beira:8080
+    ports: ["8083:8080"]
+    depends_on: [db-nampula]
+    networks: [scad-net]
+
+networks:
+  scad-net:
+
+volumes:
+  dados-maputo:
+  dados-beira:
+  dados-nampula:
