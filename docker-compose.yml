@@ -97,6 +97,8 @@ services:
     build: ./agente
     environment:
       REGIAO: Maputo
+      DESVIO_S: "0"
+      BERKELEY_MESTRE: "true"
       DB_URL: jdbc:postgresql://db-maputo:5432,db-maputo-rep:5432/scad?targetServerType=preferPrimary
       DB_PASS: scad
       PARES: http://agente-beira:8080,http://agente-nampula:8080
@@ -108,6 +110,8 @@ services:
     build: ./agente
     environment:
       REGIAO: Beira
+      DESVIO_S: "25"
+      BERKELEY_MESTRE: "false"
       DB_URL: jdbc:postgresql://db-beira:5432,db-beira-rep:5432/scad?targetServerType=preferPrimary
       DB_PASS: scad
       PARES: http://agente-maputo:8080,http://agente-nampula:8080
@@ -119,11 +123,30 @@ services:
     build: ./agente
     environment:
       REGIAO: Nampula
+      DESVIO_S: "-10"
+      BERKELEY_MESTRE: "false"
       DB_URL: jdbc:postgresql://db-nampula:5432,db-nampula-rep:5432/scad?targetServerType=preferPrimary
       DB_PASS: scad
       PARES: http://agente-maputo:8080,http://agente-beira:8080
     ports: ["8083:8080"]
     depends_on: [db-nampula, db-nampula-rep]
+    networks: [scad-net]
+
+  # ===================== FORNECEDORES EXTERNOS =====================
+  fornecedor-rest:
+    build: ./fornecedor
+    environment:
+      MODO: REST
+      NOME: Distribuidora Moderna
+    ports: ["8091:8080"]
+    networks: [scad-net]
+
+  fornecedor-soap:
+    build: ./fornecedor
+    environment:
+      MODO: SOAP
+      NOME: Grossista Legado
+    ports: ["8092:8080"]
     networks: [scad-net]
 
 networks:

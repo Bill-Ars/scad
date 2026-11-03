@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Endpoints internos do nó: o seu estado e o que ele sabe dos outros. */
+/** Endpoints internos do no: o seu estado e o que ele sabe dos outros. */
 @RestController
 public class EstadoController {
 
@@ -30,9 +30,13 @@ public class EstadoController {
         r.put("regiao", regiao);
         r.put("hora", Instant.now().toString());
         try {
-            String versao = jdbc.queryForObject("SELECT version()", String.class);
+            Map<String, Object> bd = jdbc.queryForMap(
+                "SELECT current_setting('cluster_name') AS servidor, " +
+                "       pg_is_in_recovery() AS em_recuperacao");
+            boolean replica = Boolean.TRUE.equals(bd.get("em_recuperacao"));
             r.put("baseDeDados", "OK");
-            r.put("versaoBD", versao);
+            r.put("servidorBD", bd.get("servidor"));
+            r.put("modo", replica ? "REPLICA (so leitura)" : "MESTRE (leitura e escrita)");
         } catch (Exception e) {
             r.put("baseDeDados", "FALHA: " + e.getMessage());
         }
