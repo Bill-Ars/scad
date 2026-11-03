@@ -2,76 +2,128 @@ name: scad
 
 services:
 
+  # ===================== MAPUTO =====================
   db-maputo:
     image: postgres:16
-    command: ["postgres", "-c", "max_prepared_transactions=10"]
+    command: ["postgres", "-c", "max_prepared_transactions=10", "-c", "cluster_name=db-maputo"]
     environment:
       POSTGRES_DB: scad
       POSTGRES_PASSWORD: scad
     ports: ["5441:5432"]
     volumes:
       - dados-maputo:/var/lib/postgresql/data
+      - ./db/00-replicacao.sh:/docker-entrypoint-initdb.d/00-replicacao.sh
       - ./db/comum.sql:/docker-entrypoint-initdb.d/01-comum.sql
       - ./db/maputo.sql:/docker-entrypoint-initdb.d/02-fragmento.sql
     networks: [scad-net]
 
+  db-maputo-rep:
+    image: postgres:16
+    user: postgres
+    entrypoint: ["bash", "/replica.sh"]
+    environment:
+      PRIMARIO: db-maputo
+      NOME_NO: db-maputo-rep
+      REPL_PASS: replica
+    ports: ["5451:5432"]
+    volumes:
+      - dados-maputo-rep:/var/lib/postgresql/data
+      - ./db/replica.sh:/replica.sh
+    depends_on: [db-maputo]
+    networks: [scad-net]
+
+  # ===================== BEIRA =====================
   db-beira:
     image: postgres:16
-    command: ["postgres", "-c", "max_prepared_transactions=10"]
+    command: ["postgres", "-c", "max_prepared_transactions=10", "-c", "cluster_name=db-beira"]
     environment:
       POSTGRES_DB: scad
       POSTGRES_PASSWORD: scad
     ports: ["5442:5432"]
     volumes:
       - dados-beira:/var/lib/postgresql/data
+      - ./db/00-replicacao.sh:/docker-entrypoint-initdb.d/00-replicacao.sh
       - ./db/comum.sql:/docker-entrypoint-initdb.d/01-comum.sql
       - ./db/beira.sql:/docker-entrypoint-initdb.d/02-fragmento.sql
     networks: [scad-net]
 
+  db-beira-rep:
+    image: postgres:16
+    user: postgres
+    entrypoint: ["bash", "/replica.sh"]
+    environment:
+      PRIMARIO: db-beira
+      NOME_NO: db-beira-rep
+      REPL_PASS: replica
+    ports: ["5452:5432"]
+    volumes:
+      - dados-beira-rep:/var/lib/postgresql/data
+      - ./db/replica.sh:/replica.sh
+    depends_on: [db-beira]
+    networks: [scad-net]
+
+  # ===================== NAMPULA =====================
   db-nampula:
     image: postgres:16
-    command: ["postgres", "-c", "max_prepared_transactions=10"]
+    command: ["postgres", "-c", "max_prepared_transactions=10", "-c", "cluster_name=db-nampula"]
     environment:
       POSTGRES_DB: scad
       POSTGRES_PASSWORD: scad
     ports: ["5443:5432"]
     volumes:
       - dados-nampula:/var/lib/postgresql/data
+      - ./db/00-replicacao.sh:/docker-entrypoint-initdb.d/00-replicacao.sh
       - ./db/comum.sql:/docker-entrypoint-initdb.d/01-comum.sql
       - ./db/nampula.sql:/docker-entrypoint-initdb.d/02-fragmento.sql
     networks: [scad-net]
 
+  db-nampula-rep:
+    image: postgres:16
+    user: postgres
+    entrypoint: ["bash", "/replica.sh"]
+    environment:
+      PRIMARIO: db-nampula
+      NOME_NO: db-nampula-rep
+      REPL_PASS: replica
+    ports: ["5453:5432"]
+    volumes:
+      - dados-nampula-rep:/var/lib/postgresql/data
+      - ./db/replica.sh:/replica.sh
+    depends_on: [db-nampula]
+    networks: [scad-net]
+
+  # ===================== AGENTES =====================
   agente-maputo:
     build: ./agente
     environment:
       REGIAO: Maputo
-      DB_URL: jdbc:postgresql://db-maputo:5432/scad
+      DB_URL: jdbc:postgresql://db-maputo:5432,db-maputo-rep:5432/scad?targetServerType=preferPrimary
       DB_PASS: scad
       PARES: http://agente-beira:8080,http://agente-nampula:8080
     ports: ["8081:8080"]
-    depends_on: [db-maputo]
+    depends_on: [db-maputo, db-maputo-rep]
     networks: [scad-net]
 
   agente-beira:
     build: ./agente
     environment:
       REGIAO: Beira
-      DB_URL: jdbc:postgresql://db-beira:5432/scad
+      DB_URL: jdbc:postgresql://db-beira:5432,db-beira-rep:5432/scad?targetServerType=preferPrimary
       DB_PASS: scad
       PARES: http://agente-maputo:8080,http://agente-nampula:8080
     ports: ["8082:8080"]
-    depends_on: [db-beira]
+    depends_on: [db-beira, db-beira-rep]
     networks: [scad-net]
 
   agente-nampula:
     build: ./agente
     environment:
       REGIAO: Nampula
-      DB_URL: jdbc:postgresql://db-nampula:5432/scad
+      DB_URL: jdbc:postgresql://db-nampula:5432,db-nampula-rep:5432/scad?targetServerType=preferPrimary
       DB_PASS: scad
       PARES: http://agente-maputo:8080,http://agente-beira:8080
     ports: ["8083:8080"]
-    depends_on: [db-nampula]
+    depends_on: [db-nampula, db-nampula-rep]
     networks: [scad-net]
 
 networks:
@@ -79,5 +131,8 @@ networks:
 
 volumes:
   dados-maputo:
+  dados-maputo-rep:
   dados-beira:
+  dados-beira-rep:
   dados-nampula:
+  dados-nampula-rep:
