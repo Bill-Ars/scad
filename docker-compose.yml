@@ -4,29 +4,41 @@ services:
 
   db-maputo:
     image: postgres:16
+    command: ["postgres", "-c", "max_prepared_transactions=10"]
     environment:
       POSTGRES_DB: scad
       POSTGRES_PASSWORD: scad
     ports: ["5441:5432"]
-    volumes: [dados-maputo:/var/lib/postgresql/data]
+    volumes:
+      - dados-maputo:/var/lib/postgresql/data
+      - ./db/comum.sql:/docker-entrypoint-initdb.d/01-comum.sql
+      - ./db/maputo.sql:/docker-entrypoint-initdb.d/02-fragmento.sql
     networks: [scad-net]
 
   db-beira:
     image: postgres:16
+    command: ["postgres", "-c", "max_prepared_transactions=10"]
     environment:
       POSTGRES_DB: scad
       POSTGRES_PASSWORD: scad
     ports: ["5442:5432"]
-    volumes: [dados-beira:/var/lib/postgresql/data]
+    volumes:
+      - dados-beira:/var/lib/postgresql/data
+      - ./db/comum.sql:/docker-entrypoint-initdb.d/01-comum.sql
+      - ./db/beira.sql:/docker-entrypoint-initdb.d/02-fragmento.sql
     networks: [scad-net]
 
   db-nampula:
     image: postgres:16
+    command: ["postgres", "-c", "max_prepared_transactions=10"]
     environment:
       POSTGRES_DB: scad
       POSTGRES_PASSWORD: scad
     ports: ["5443:5432"]
-    volumes: [dados-nampula:/var/lib/postgresql/data]
+    volumes:
+      - dados-nampula:/var/lib/postgresql/data
+      - ./db/comum.sql:/docker-entrypoint-initdb.d/01-comum.sql
+      - ./db/nampula.sql:/docker-entrypoint-initdb.d/02-fragmento.sql
     networks: [scad-net]
 
   agente-maputo:
