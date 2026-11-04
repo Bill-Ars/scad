@@ -1,0 +1,43 @@
+package mz.ac.isutc.scad.agente;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+/**
+ * Exige login apenas no painel web. As restantes rotas (/tx, /ra, /relogio, /estado, /stock...) ficam
+ * abertas porque os nos chamam-nas entre si sem sessao; o mesmo vale para /painel/ordens.
+ */
+@Component
+public class LoginFiltro extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest pedido, HttpServletResponse resposta, FilterChain cadeia)
+            throws ServletException, IOException {
+        // getServletPath (e nao getRequestURI) para ignorar parametros como /painel;x=1/resumo
+        String caminho = pedido.getServletPath();
+        boolean pagina = caminho.equals("/") || caminho.equals("/index.html");
+        boolean api = caminho.startsWith("/painel/") && !caminho.equals("/painel/ordens");
+
+        // Sem isto, o navegador pode mostrar o painel guardado em cache sem passar pelo login
+        if (pagina) resposta.setHeader("Cache-Control", "no-store");
+
+        if ((pagina || api) && !autenticado(pedido)) {
+            if (pagina) resposta.sendRedirect("/login.html");
+            else resposta.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        cadeia.doFilter(pedido, resposta);
+    }
+
+    private static boolean autenticado(HttpServletRequest pedido) {
+        HttpSession sessao = pedido.getSession(false);
+        return sessao != null && sessao.getAttribute(LoginController.ATRIBUTO_SESSAO) != null;
+    }
+}
