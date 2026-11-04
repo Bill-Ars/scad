@@ -52,6 +52,12 @@ docker compose ps                 # 21 contentores em execucao
 Esperar cerca de 60 segundos ate todos os servicos arrancarem. Para recomecar do zero:
 `docker compose down -v && docker compose up -d`.
 
+## Painel web
+
+Depois do deploy, abrir **http://localhost:8081** para ver em tempo real o estado dos nos (heartbeat, mestre/replica, relogio),
+o stock global, as ordens de compra, as faturas no HDFS, a auditoria e os servicos partilhados, e lancar as demonstracoes
+(compra simultanea com Ricart-Agrawala + 2PC, compra SOAP, ronda de Berkeley).
+
 ## Testes e demonstracao
 
 Os scripts em `testes/` (PowerShell, Windows) executam cada demonstracao com pausas e indicam o resultado esperado:

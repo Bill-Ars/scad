@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="pt" data-tema="escuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCAD · Painel de Controlo</title>
+<style>
+  /* ---------- Temas: escuro (verde), oceano (azul) e claro ---------- */
+  :root, [data-tema="escuro"]{
+    --bg:#0b1014; --bg2:#0f161b; --card:#131c22; --card2:#18232b; --line:#22303a; --ink:#e6edf1; --muted:#8a9aa5;
+    --accent:#2ee59d; --accent2:#1fb57b; --glow:rgba(46,229,157,.18);
+    --c1:#2ee59d; --c2:#38bdf8; --c3:#a78bfa; --bad:#ff6b6b; --bad-bg:rgba(255,107,107,.12); --warn:#fbbf24; --warn-bg:rgba(251,191,36,.12);
+    --ok-bg:rgba(46,229,157,.12); --btn-ink:#06281a;
+  }
+  [data-tema="oceano"]{
+    --bg:#071226; --bg2:#0a1832; --card:#0d1f3d; --card2:#112750; --line:#1c3463; --ink:#e4ecfa; --muted:#8ea3c7;
+    --accent:#38bdf8; --accent2:#0ea5e9; --glow:rgba(56,189,248,.20);
+    --c1:#38bdf8; --c2:#2dd4bf; --c3:#818cf8; --bad:#fb7185; --bad-bg:rgba(251,113,133,.13); --warn:#fbbf24; --warn-bg:rgba(251,191,36,.12);
+    --ok-bg:rgba(45,212,191,.13); --btn-ink:#04223a;
+  }
+  [data-tema="claro"]{
+    --bg:#eef2f7; --bg2:#e6ebf2; --card:#ffffff; --card2:#f6f8fb; --line:#dde3eb; --ink:#14202b; --muted:#5d6b78;
+    --accent:#4f46e5; --accent2:#4338ca; --glow:rgba(79,70,229,.10);
+    --c1:#4f46e5; --c2:#0ea5e9; --c3:#14b8a6; --bad:#dc2626; --bad-bg:#fde8e8; --warn:#b45309; --warn-bg:#fdf1dc;
+    --ok-bg:#e3f6ec; --btn-ink:#ffffff;
+  }
+  :root{ --sans:"Segoe UI",Inter,system-ui,-apple-system,sans-serif; --mono:Consolas,"Cascadia Mono","JetBrains Mono",monospace; --r:16px; }
+  *{box-sizing:border-box}
+  html{color-scheme:dark} [data-tema="claro"]{color-scheme:light}
+  body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,var(--glow),transparent 60%),var(--bg);color:var(--ink);
+       font-family:var(--sans);font-size:14px;min-height:100vh;transition:background .3s}
+  a{color:var(--accent)}
+
+  /* ---------- Barra superior ---------- */
+  header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;padding:14px 28px;
+         background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:.02em}
+  .logo i{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--c2));display:grid;place-items:center;
+          color:var(--btn-ink);font-style:normal;font-size:15px;box-shadow:0 0 18px var(--glow)}
+  .logo small{display:block;font-weight:400;font-size:11px;color:var(--muted);letter-spacing:0}
+  nav.pills{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;flex-wrap:wrap}
+  nav.pills a{color:var(--muted);text-decoration:none;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:500}
+  nav.pills a:hover{color:var(--ink);background:var(--card2)}
+  nav.pills a.on{background:var(--accent);color:var(--btn-ink);font-weight:600}
+  .direita{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .temas{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px}
+  .temas button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .temas button span{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .temas button.on{background:var(--card2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+  .relogio{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 12px}
+  .ponto{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;box-shadow:0 0 8px var(--accent);animation:p 2s infinite}
+  @keyframes p{50%{opacity:.35}}
+
+  /* ---------- Grelha ---------- */
+  main{padding:22px 28px 40px;display:grid;gap:18px;grid-template-columns:repeat(12,minmax(0,1fr));max-width:1500px;margin:0 auto}
+  .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;min-width:0;
+        box-shadow:0 10px 30px -18px rgba(0,0,0,.55)}
+  .card h2{font-size:13px;font-weight:600;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .card h2 small{color:var(--muted);font-weight:400;font-size:12px}
+  .s12{grid-column:span 12}.s8{grid-column:span 8}.s7{grid-column:span 7}.s6{grid-column:span 6}.s5{grid-column:span 5}.s4{grid-column:span 4}
+  @media (max-width:1100px){.s8,.s7,.s6,.s5,.s4{grid-column:span 12}}
+
+  /* ---------- Indicadores ---------- */
+  .kpis{grid-column:span 12;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px}
+  @media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .kpi{position:relative;overflow:hidden}
+  .kpi .rot{color:var(--muted);font-size:12.5px;display:flex;justify-content:space-between}
+  .kpi .val{font-size:30px;font-weight:700;margin:8px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .kpi .sub{font-size:12px;color:var(--muted)}
+  .kpi::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:radial-gradient(var(--glow),transparent 70%)}
+  .bom{color:var(--accent)} .mau{color:var(--bad)} .medio{color:var(--warn)}
+
+  /* ---------- Nos ---------- */
+  .nos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  @media (max-width:800px){.nos{grid-template-columns:1fr}}
+  .no{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .no.off{border-color:color-mix(in srgb,var(--bad) 55%,var(--line));box-shadow:0 0 0 1px var(--bad-bg) inset}
+  .no h3{margin:0 0 10px;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12.5px;margin:0}
+  .kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono);font-size:12px;text-align:right;overflow-wrap:anywhere}
+  .pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.04em;white-space:nowrap}
+  .p-ok{background:var(--ok-bg);color:var(--accent)} .p-bad{background:var(--bad-bg);color:var(--bad)} .p-warn{background:var(--warn-bg);color:var(--warn)}
+
+  /* ---------- Graficos ---------- */
+  svg text{fill:var(--muted);font-family:var(--sans);font-size:11px}
+  .donut{display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:center}
+  .legenda{display:grid;gap:8px;font-size:13px;min-width:150px}
+  .legenda div{display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .legenda b{font-variant-numeric:tabular-nums}
+  .leg-i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:6px}
+  .leg-linha{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+
+  /* ---------- Servicos, tabelas, acoes ---------- */
+  .svc{display:grid;gap:10px}
+  .svc div{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--line)}
+  .tw{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  tr:last-child td{border-bottom:0}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+  .acoes{display:grid;gap:10px;margin-bottom:12px}
+  button.acao{font:inherit;font-weight:600;font-size:13px;text-align:left;border:1px solid var(--line);background:var(--bg2);color:var(--ink);padding:11px 14px;border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  button.acao:hover{border-color:var(--accent)}
+  button.acao.prim{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--btn-ink);border-color:transparent;box-shadow:0 8px 20px -10px var(--accent)}
+  button.acao small{font-weight:400;opacity:.8}
+  button:disabled{opacity:.5;cursor:wait}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  pre#log{margin:0;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;max-height:300px;overflow:auto;white-space:pre-wrap;color:var(--ink)}
+  .vazio{color:var(--muted);font-style:italic}
+  @media (prefers-reduced-motion:reduce){.ponto{animation:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><i>S</i><div>SCAD<small>Compras Automáticas Distribuídas</small></div></div>
+  <nav class="pills" aria-label="Secções">
+    <a href="#topo" class="on">Visão geral</a><a href="#s-nos">Nós</a><a href="#s-stock">Stock</a><a href="#s-acoes">Demonstração</a><a href="#s-ordens">Ordens</a><a href="#s-audit">Auditoria</a>
+  </nav>
+  <div class="direita">
+    <div class="temas" role="group" aria-label="Fundo do painel">
+      <button data-t="escuro"><span style="background:#2ee59d"></span>Escuro</button>
+      <button data-t="oceano"><span style="background:#38bdf8"></span>Oceano</button>
+      <button data-t="claro"><span style="background:#4f46e5"></span>Claro</button>
+    </div>
+    <div class="relogio"><span class="ponto"></span>Berkeley · <span id="hora">—</span></div>
+  </div>
+</header>
+
+<main id="topo">
+  <div class="kpis">
+    <div class="card kpi"><div class="rot">Nós regionais</div><div class="val" id="k-nos">—</div><div class="sub">heartbeat de 5 em 5 s</div></div>
+    <div class="card kpi"><div class="rot">DataNodes HDFS</div><div class="val" id="k-dn">—</div><div class="sub">fator de replicação 3</div></div>
+    <div class="card kpi"><div class="rot">Abaixo do mínimo</div><div class="val" id="k-baixo">—</div><div class="sub" id="k-baixo-s">produtos a repor</div></div>
+    <div class="card kpi"><div class="rot">Ordens de compra</div><div class="val" id="k-ord">—</div><div class="sub">registadas por 2PC</div></div>
+    <div class="card kpi"><div class="rot">Faturas no DFS</div><div class="val" id="k-fat">—</div><div class="sub">PDF em /scad/faturas</div></div>
+  </div>
+
+  <section class="card s8" id="s-nos">
+    <h2>Nós regionais <small>estado, base de dados e relógio</small></h2>
+    <div class="nos" id="nos"></div>
+  </section>
+
+  <section class="card s4">
+    <h2>Stock por região <small>unidades</small></h2>
+    <div class="donut"><svg id="donut" width="170" height="170" viewBox="0 0 170 170" role="img" aria-label="Stock total por região"></svg><div class="legenda" id="leg-donut"></div></div>
+  </section>
+
+  <section class="card s8" id="s-stock">
+    <h2>Stock vs. mínimo <small id="stockInfo"></small></h2>
+    <svg id="barras" width="100%" height="260" role="img" aria-label="Stock por produto e região"></svg>
+    <div class="leg-linha" id="leg-barras"></div>
+  </section>
+
+  <section class="card s4">
+    <h2>Serviços partilhados</h2>
+    <div class="svc" id="svc"></div>
+  </section>
+
+  <section class="card s6">
+    <h2>Relógios · desvio (s) <small>Berkeley alinha as três linhas</small></h2>
+    <svg id="linhas" width="100%" height="230" role="img" aria-label="Desvio dos relógios ao longo do tempo"></svg>
+    <div class="leg-linha" id="leg-linhas"></div>
+  </section>
+
+  <section class="card s6" id="s-acoes">
+    <h2>Demonstração</h2>
+    <div class="acoes">
+      <button class="acao prim" id="bCompra">Compra simultânea de P2 · Maputo + Beira <small>Ricart-Agrawala → 2PC → REST → HDFS</small></button>
+      <button class="acao" id="bSoap">Compra de P4 · Nampula <small>rota SOAP/XML</small></button>
+      <button class="acao" id="bBerk">Sincronizar relógios <small>ronda de Berkeley</small></button>
+      <button class="acao" id="bDes">Desacertar relógios <small>0 s · +25 s · −10 s</small></button>
+    </div>
+    <pre id="log">Os resultados das ações aparecem aqui.</pre>
+  </section>
+
+  <section class="card s7" id="s-ordens">
+    <h2>Ordens de compra <small>todas as regiões</small></h2>
+    <div class="tw"><table id="ordens"></table></div>
+  </section>
+
+  <section class="card s5">
+    <h2>Faturas no HDFS</h2>
+    <div class="tw"><table id="faturas"></table></div>
+  </section>
+
+  <section class="card s12" id="s-audit">
+    <h2>Auditoria de Maputo <small>hora sincronizada (UTC)</small></h2>
+    <div class="tw"><table id="audit"></table></div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const REG = ['Maputo', 'Beira', 'Nampula'];
+const cor = r => css(['--c1', '--c2', '--c3'][REG.indexOf(r)] || '--muted');
+const pill = (cls, txt) => `<span class="pill ${cls}">${txt}</span>`;
+const SVGNS = 'http://www.w3.org/2000/svg';
+let ultimo = null;
+const historico = { Maputo: [], Beira: [], Nampula: [] };
+
+/* ---------- Temas ---------- */
+function tema(t) {
+  document.documentElement.setAttribute('data-tema', t);
+  document.querySelectorAll('.temas button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  try { localStorage.setItem('scad-tema', t); } catch (e) {}
+  if (ultimo) desenhar(ultimo);
+}
+document.querySelectorAll('.temas button').forEach(b => b.onclick = () => tema(b.dataset.t));
+let guardado = 'escuro'; try { guardado = localStorage.getItem('scad-tema') || 'escuro'; } catch (e) {}
+tema(guardado);
+
+/* ---------- Navegacao ---------- */
+document.querySelectorAll('nav.pills a').forEach(a => a.addEventListener('click', () => {
+  document.querySelectorAll('nav.pills a').forEach(x => x.classList.remove('on')); a.classList.add('on');
+}));
+
+function tabela(el, cab, linhas) {
+  if (!linhas.length) { el.innerHTML = `<tr><td class="vazio">sem dados</td></tr>`; return; }
+  el.innerHTML = '<tr>' + cab.map(c => `<th>${c}</th>`).join('') + '</tr>' +
+    linhas.map(l => '<tr>' + l.map(c => (c && c.num !== undefined) ? `<td class="num">${c.num}</td>` : `<td>${c ?? ''}</td>`).join('') + '</tr>').join('');
+}
+function el(nome, at) { const e = document.createElementNS(SVGNS, nome); for (const k in at) e.setAttribute(k, at[k]); return e; }
+
+/* ---------- Graficos SVG ---------- */
+function donut(totais) {
+  const svg = $('donut'); svg.innerHTML = '';
+  const tot = REG.reduce((s, r) => s + (totais[r] || 0), 0) || 1;
+  const R = 62, C = 2 * Math.PI * R; let off = 0;
+  svg.appendChild(el('circle', { cx: 85, cy: 85, r: R, fill: 'none', stroke: css('--line'), 'stroke-width': 20 }));
+  REG.forEach(r => {
+    const v = totais[r] || 0, len = C * v / tot;
+    if (v > 0) svg.appendChild(el('circle', { cx: 85, cy: 85, r: R, fill: 'none', stroke: cor(r), 'stroke-width': 20,
+      'stroke-dasharray': `${Math.max(len - 3, 0)} ${C}`, 'stroke-dashoffset': -off, transform: 'rotate(-90 85 85)', 'stroke-linecap': 'butt' }));
+    off += len;
+  });
+  const t1 = el('text', { x: 85, y: 82, 'text-anchor': 'middle', style: `font-size:22px;font-weight:700;fill:${css('--ink')}` }); t1.textContent = tot;
+  const t2 = el('text', { x: 85, y: 101, 'text-anchor': 'middle' }); t2.textContent = 'unidades';
+  svg.append(t1, t2);
+  $('leg-donut').innerHTML = REG.map(r => `<div><span><i class="leg-i" style="background:${cor(r)}"></i>${r}</span><b>${totais[r] ?? '—'}</b></div>`).join('');
+}
+
+function barras(linhas) {
+  const svg = $('barras'); svg.innerHTML = '';
+  const W = svg.clientWidth || 700, H = 260, m = { t: 14, r: 10, b: 30, l: 40 };
+  const prods = [...new Set(linhas.map(l => l.produto_id))].sort();
+  const max = Math.max(10, ...linhas.map(l => Math.max(l.quantidade, l.limite_minimo))) * 1.1;
+  const y = v => m.t + (H - m.t - m.b) * (1 - v / max);
+  for (let i = 0; i <= 4; i++) {
+    const v = Math.round(max * i / 4), yy = y(v);
+    svg.appendChild(el('line', { x1: m.l, x2: W - m.r, y1: yy, y2: yy, stroke: css('--line'), 'stroke-dasharray': '3 4' }));
+    const t = el('text', { x: m.l - 8, y: yy + 4, 'text-anchor': 'end' }); t.textContent = v; svg.appendChild(t);
+  }
+  const gw = (W - m.l - m.r) / Math.max(prods.length, 1), bw = Math.min(26, gw / 4.5);
+  prods.forEach((p, gi) => {
+    const x0 = m.l + gi * gw + gw / 2 - (bw * 3 + 8) / 2;
+    REG.forEach((r, ri) => {
+      const l = linhas.find(z => z.produto_id === p && z.regiao === r); if (!l) return;
+      const x = x0 + ri * (bw + 4), yy = y(l.quantidade);
+      const rect = el('rect', { x, y: yy, width: bw, height: H - m.b - yy, rx: 5, fill: l.abaixo_minimo ? css('--bad') : cor(r), opacity: l.abaixo_minimo ? 1 : .9 });
+      const tt = el('title', {}); tt.textContent = `${p} · ${r}: ${l.quantidade} (mínimo ${l.limite_minimo})`; rect.appendChild(tt);
+      svg.appendChild(rect);
+      svg.appendChild(el('line', { x1: x - 2, x2: x + bw + 2, y1: y(l.limite_minimo), y2: y(l.limite_minimo), stroke: css('--warn'), 'stroke-width': 2 }));
+    });
+    const t = el('text', { x: m.l + gi * gw + gw / 2, y: H - 10, 'text-anchor': 'middle', style: `fill:${css('--ink')};font-weight:600` }); t.textContent = p;
+    svg.appendChild(t);
+  });
+  $('leg-barras').innerHTML = REG.map(r => `<span><i class="leg-i" style="background:${cor(r)}"></i>${r}</span>`).join('') +
+    `<span><i class="leg-i" style="background:${css('--bad')}"></i>abaixo do mínimo</span><span><i class="leg-i" style="background:${css('--warn')};height:3px"></i>limite mínimo</span>`;
+}
+
+function linhasRelogio() {
+  const svg = $('linhas'); svg.innerHTML = '';
+  const W = svg.clientWidth || 600, H = 230, m = { t: 14, r: 12, b: 22, l: 40 };
+  const todos = REG.flatMap(r => historico[r]);
+  const lo = Math.min(-12, ...todos), hi = Math.max(27, ...todos);
+  const n = 40, x = i => m.l + (W - m.l - m.r) * i / (n - 1), y = v => m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo));
+  [-10, 0, 10, 20].forEach(v => {
+    if (v < lo || v > hi) return;
+    svg.appendChild(el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: css('--line'), 'stroke-dasharray': v === 0 ? '' : '3 4' }));
+    const t = el('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }); t.textContent = (v > 0 ? '+' : '') + v + ' s'; svg.appendChild(t);
+  });
+  REG.forEach(r => {
+    const h = historico[r]; if (!h.length) return;
+    const desl = n - h.length;
+    const pts = h.map((v, i) => `${x(i + desl).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    svg.appendChild(el('polyline', { points: pts, fill: 'none', stroke: cor(r), 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    const u = h[h.length - 1];
+    svg.appendChild(el('circle', { cx: x(n - 1), cy: y(u), r: 4.5, fill: cor(r), stroke: css('--card'), 'stroke-width': 2 }));
+  });
+  $('leg-linhas').innerHTML = REG.map(r => { const h = historico[r]; const u = h.length ? h[h.length - 1] : null;
+    return `<span><i class="leg-i" style="background:${cor(r)}"></i>${r} ${u === null ? '—' : (u >= 0 ? '+' : '') + u.toFixed(1) + ' s'}</span>`; }).join('');
+}
+
+/* ---------- Desenho de todo o painel ---------- */
+function desenhar(r) {
+  const m = r.nos.find(n => n.mestreBerkeley);
+  if (m && m.hora) $('hora').textContent = String(m.hora).slice(11, 19) + ' UTC';
+
+  const vivos = r.nos.filter(n => n.online).length;
+  $('k-nos').innerHTML = `<span class="${vivos === 3 ? 'bom' : 'mau'}">${vivos}</span> / 3`;
+  const h = r.hdfs;
+  $('k-dn').innerHTML = h.online ? `<span class="${h.vivos == 3 ? 'bom' : 'medio'}">${h.vivos}</span> / 3` : '<span class="mau">off</span>';
+  const baixo = r.stock.linhas.filter(l => l.abaixo_minimo);
+  $('k-baixo').innerHTML = `<span class="${baixo.length ? 'mau' : 'bom'}">${baixo.length}</span>`;
+  $('k-baixo-s').textContent = baixo.length ? baixo.map(l => l.produto_id + ' ' + l.regiao).join(' · ') : 'tudo acima do mínimo';
+  $('k-ord').textContent = r.ordens.length;
+  $('k-fat').textContent = (h.faturas || []).length;
+
+  $('nos').innerHTML = REG.map(reg => {
+    const n = r.nos.find(x => x.regiao === reg) || { regiao: reg, online: false };
+    if (!n.online) return `<div class="no off"><h3>${reg} ${pill('p-bad', 'EM FALHA')}</h3><p class="vazio">Sem resposta ao heartbeat.</p></div>`;
+    const bdOk = n.baseDeDados === 'OK', rep = String(n.modo || '').startsWith('REPLICA');
+    return `<div class="no"><h3><span><i class="leg-i" style="background:${cor(reg)}"></i>${reg}</span> ${pill('p-ok', 'VIVO')}</h3><dl class="kv">
+      <dt>Base de dados</dt><dd>${bdOk ? pill(rep ? 'p-warn' : 'p-ok', rep ? 'RÉPLICA' : 'MESTRE') : pill('p-bad', 'FALHA')}</dd>
+      <dt>Servidor</dt><dd>${esc(n.servidorBD || '—')}</dd>
+      <dt>Desvio</dt><dd>${(n.desvioMs >= 0 ? '+' : '') + n.desvioMs} ms</dd>
+      <dt>Papel</dt><dd>${n.mestreBerkeley ? 'mestre Berkeley' : 'escravo Berkeley'}</dd></dl></div>`;
+  }).join('');
+
+  const totais = {}; r.stock.linhas.forEach(l => totais[l.regiao] = (totais[l.regiao] || 0) + l.quantidade);
+  donut(totais);
+  barras(r.stock.linhas);
+  $('stockInfo').textContent = `${r.stock.totalLinhas} linhas · ` + (r.stock.fragmentosIndisponiveis.length ? 'fragmento em falha: ' + r.stock.fragmentosIndisponiveis.map(u => u.replace('http://agente-', '').replace(':8080', '')).join(', ') : '3 fragmentos');
+  linhasRelogio();
+
+  const f = r.fornecedores;
+  $('svc').innerHTML =
+    `<div><span>HDFS · NameNode</span>${h.online ? pill('p-ok', 'ONLINE') : pill('p-bad', 'EM FALHA')}</div>` +
+    `<div><span>DataNodes vivos</span>${h.online ? pill(h.vivos == 3 ? 'p-ok' : 'p-warn', h.vivos + ' / 3' + (h.stale ? ' · ' + h.stale + ' stale' : '')) : '—'}</div>` +
+    `<div><span>Fornecedor REST/JSON</span>${pill(f.restOnline ? 'p-ok' : 'p-bad', f.restOnline ? 'ONLINE' : 'EM FALHA')}</div>` +
+    `<div><span>Fornecedor SOAP/XML</span>${pill(f.soapOnline ? 'p-ok' : 'p-bad', f.soapOnline ? 'ONLINE' : 'EM FALHA')}</div>` +
+    `<div><span>Contrato SOAP</span><a href="http://localhost:8092/ws?wsdl" target="_blank" rel="noopener">abrir WSDL</a></div>` +
+    `<div><span>Interface do HDFS</span><a href="http://localhost:9870" target="_blank" rel="noopener">localhost:9870</a></div>`;
+
+  const ordens = r.ordens.slice().sort((a, b) => String(b.criada).localeCompare(String(a.criada))).slice(0, 8);
+  tabela($('ordens'), ['Ordem', 'Região', 'Produto', 'Forn.', 'Qtd', 'Criada (UTC)'],
+    ordens.map(o => [esc(o.id), `<i class="leg-i" style="background:${cor(o.regiao)}"></i>${o.regiao}`, o.produto_id, o.fornecedor_id, { num: o.quantidade }, esc(o.criada)]));
+  tabela($('faturas'), ['Ficheiro', 'Bytes', 'Réplicas', ''],
+    (h.faturas || []).slice(-8).reverse().map(x => [esc(x.pathSuffix), { num: x.length }, pill('p-ok', x.replication + '×'),
+      `<a href="/dfs/ler?caminho=/scad/faturas/${encodeURIComponent(x.pathSuffix)}" target="_blank" rel="noopener">abrir PDF</a>`]));
+  tabela($('audit'), ['Hora', 'Nó', 'Operação', 'Detalhe'],
+    (r.auditoria || []).map(a => [`<span style="font-family:var(--mono)">${a.hora}</span>`, a.no_origem, pill(String(a.operacao).includes('ERRO') || String(a.operacao).includes('REJEIT') ? 'p-bad' : 'p-ok', esc(a.operacao)), esc(String(a.detalhe).slice(0, 90))]));
+}
+
+async function atualizar() {
+  try {
+    const r = await (await fetch('/painel/resumo')).json();
+    r.nos.forEach(n => { if (n.online && historico[n.regiao]) { historico[n.regiao].push(n.desvioMs / 1000); if (historico[n.regiao].length > 40) historico[n.regiao].shift(); } });
+    ultimo = r; desenhar(r);
+  } catch (e) { $('hora').textContent = 'agente de Maputo sem resposta'; }
+}
+
+/* ---------- Acoes ---------- */
+function log(t) { $('log').textContent = t; }
+const compra = l => l.map(x => `▶ Nó ${x.no}: ${x.resultado || ''}\n` + (x.passos || []).map(p => '   ' + p).join('\n')).join('\n\n');
+async function acao(fn) {
+  document.querySelectorAll('button.acao').forEach(b => b.disabled = true);
+  log('A executar...');
+  try { log(await fn()); } catch (e) { log('Erro: ' + e); }
+  document.querySelectorAll('button.acao').forEach(b => b.disabled = false);
+  atualizar();
+}
+$('bCompra').onclick = () => acao(async () => compra(await (await fetch('/painel/compra?produtoId=P2&regioes=Maputo,Beira', { method: 'POST' })).json()));
+$('bSoap').onclick = () => acao(async () => compra(await (await fetch('/painel/compra?produtoId=P4&regioes=Nampula', { method: 'POST' })).json()));
+$('bBerk').onclick = () => acao(async () => {
+  const b = await (await fetch('/painel/berkeley', { method: 'POST' })).json();
+  return `Ronda de Berkeley · mestre ${b.mestre}\n   diferenças (ms): ${JSON.stringify(b.diferencasMs)}\n   média:           ${b.mediaMs} ms\n   ajustes (ms):    ${JSON.stringify(b.ajustesMs)}`;
+});
+$('bDes').onclick = () => acao(async () => { await fetch('/painel/desacertar', { method: 'POST' }); return 'Relógios repostos: Maputo 0 s · Beira +25 s · Nampula −10 s.'; });
+
+window.addEventListener('resize', () => ultimo && desenhar(ultimo));
+atualizar();
+setInterval(atualizar, 3000);
+</script>
+</body>
+</html>
