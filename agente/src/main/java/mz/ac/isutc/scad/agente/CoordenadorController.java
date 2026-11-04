@@ -60,6 +60,7 @@ public class CoordenadorController {
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("coordenador", regiao);
         r.put("transacao", base);
+        r.put("ordemId", ordemId);
         r.put("participantes", regioes);
         registar("2PC-INICIO", base + " participantes=" + String.join(",", regioes));
 
