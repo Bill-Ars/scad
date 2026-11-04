@@ -36,6 +36,7 @@ public class MonitorPares {
         // Timeout de 2 s: se um nó não responder neste tempo, é considerado EM FALHA
         SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
         f.setConnectTimeout(Duration.ofSeconds(2));
+        
         f.setReadTimeout(Duration.ofSeconds(2));
         this.http = RestClient.builder().requestFactory(f).build();
     }

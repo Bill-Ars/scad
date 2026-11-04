@@ -17,6 +17,8 @@ services:
       - ./db/maputo.sql:/docker-entrypoint-initdb.d/02-fragmento.sql
     networks: [scad-net]
 
+    
+
   db-maputo-rep:
     image: postgres:16
     user: postgres

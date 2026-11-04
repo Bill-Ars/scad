@@ -46,7 +46,7 @@ Bases de dados: base `scad`, utilizador `postgres`, palavra-passe `scad`.
 git clone https://github.com/Bill-Ars/scad.git
 cd scad
 docker compose up -d --build      # a primeira vez demora alguns minutos (descarga de imagens e dependencias)
-docker compose ps                 # 21 contentores em execucao
+docker compose ps                 # 20 contentores em execucao
 ```
 
 Esperar cerca de 60 segundos ate todos os servicos arrancarem. Para recomecar do zero:
