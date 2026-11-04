@@ -1,0 +1,31 @@
+// =====================================================================
+//  SCAD - Interface IDL da comunicacao interna (CORBA / JacORB)
+//  Modulo central de auditoria  <->  robos/agentes de stock locais
+// =====================================================================
+module SCAD {
+
+    // Alerta enviado por um robo quando um produto fica abaixo do stock minimo
+    struct AlertaStock {
+        string    produtoId;
+        string    regiao;
+        long      quantidadeAtual;
+        long      limiteMinimo;
+        long long timestamp;          // milissegundos desde 1970 (UTC)
+    };
+
+    typedef sequence<AlertaStock> ListaAlertas;
+
+    exception ProdutoInexistente { string motivo; };
+
+    // Implementado por cada robo de stock regional; invocado pela auditoria
+    interface AgenteStock {
+        readonly attribute string regiao;
+        long consultarSaldo(in string produtoId) raises (ProdutoInexistente);
+    };
+
+    // Implementado pelo modulo central de auditoria; invocado pelos robos
+    interface Auditoria {
+        oneway void dispararAlerta(in AlertaStock alerta);   // sem resposta: o robo nao bloqueia
+        ListaAlertas listarAlertas();
+    };
+};

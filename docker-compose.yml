@@ -149,6 +149,103 @@ services:
     ports: ["8092:8080"]
     networks: [scad-net]
 
+  # ===================== DFS: HDFS (1 NameNode + 3 DataNodes) =====================
+  namenode:
+    image: apache/hadoop:3
+    hostname: namenode
+    command: ["hdfs", "namenode"]
+    ports: ["9870:9870"]
+    environment:
+      <<: &hdfs-env
+        CORE-SITE.XML_fs.defaultFS: hdfs://namenode
+        HDFS-SITE.XML_dfs.namenode.rpc-address: namenode:8020
+        HDFS-SITE.XML_dfs.namenode.name.dir: /tmp/hadoop-root/dfs/name
+        HDFS-SITE.XML_dfs.replication: "3"
+        HDFS-SITE.XML_dfs.permissions.enabled: "false"
+        HDFS-SITE.XML_dfs.webhdfs.enabled: "true"
+        HDFS-SITE.XML_dfs.namenode.datanode.registration.ip-hostname-check: "false"
+        HDFS-SITE.XML_dfs.namenode.avoid.read.stale.datanode: "true"
+        HDFS-SITE.XML_dfs.namenode.avoid.write.stale.datanode: "true"
+        HDFS-SITE.XML_dfs.namenode.stale.datanode.interval: "10000"
+        HDFS-SITE.XML_dfs.namenode.heartbeat.recheck-interval: "15000"
+      ENSURE_NAMENODE_DIR: /tmp/hadoop-root/dfs/name
+    networks: [scad-net]
+
+  datanode1:
+    image: apache/hadoop:3
+    hostname: datanode1
+    command: ["hdfs", "datanode"]
+    environment: *hdfs-env
+    depends_on: [namenode]
+    networks: [scad-net]
+
+  datanode2:
+    image: apache/hadoop:3
+    hostname: datanode2
+    command: ["hdfs", "datanode"]
+    environment: *hdfs-env
+    depends_on: [namenode]
+    networks: [scad-net]
+
+  datanode3:
+    image: apache/hadoop:3
+    hostname: datanode3
+    command: ["hdfs", "datanode"]
+    environment: *hdfs-env
+    depends_on: [namenode]
+    networks: [scad-net]
+
+  # ===================== CORBA (JacORB): Naming Service, Auditoria e robos de stock =====================
+  corba-naming:
+    build: ./corba
+    environment:
+      CLASSE: org.jacorb.naming.NameServer
+      JAVA_OPTS: -Djacorb.naming.ior_filename=/ior/NameService.ior
+    volumes: [corba-ior:/ior]
+    networks: [scad-net]
+
+  auditoria:
+    build: ./corba
+    environment:
+      CLASSE: mz.ac.isutc.scad.corba.ServidorAuditoria
+      JAVA_OPTS: -DORBInitRef.NameService=file:/ior/NameService.ior
+    volumes: [corba-ior:/ior]
+    depends_on: [corba-naming]
+    networks: [scad-net]
+
+  robo-maputo:
+    build: ./corba
+    environment:
+      CLASSE: mz.ac.isutc.scad.corba.RoboStock
+      JAVA_OPTS: -DORBInitRef.NameService=file:/ior/NameService.ior
+      REGIAO: Maputo
+      DB_URL: jdbc:postgresql://db-maputo:5432,db-maputo-rep:5432/scad?targetServerType=preferPrimary
+    volumes: [corba-ior:/ior]
+    depends_on: [corba-naming, auditoria, db-maputo]
+    networks: [scad-net]
+
+  robo-beira:
+    build: ./corba
+    environment:
+      CLASSE: mz.ac.isutc.scad.corba.RoboStock
+      JAVA_OPTS: -DORBInitRef.NameService=file:/ior/NameService.ior
+      REGIAO: Beira
+      DB_URL: jdbc:postgresql://db-beira:5432,db-beira-rep:5432/scad?targetServerType=preferPrimary
+    volumes: [corba-ior:/ior]
+    depends_on: [corba-naming, auditoria, db-beira]
+    networks: [scad-net]
+
+  robo-nampula:
+    build: ./corba
+    environment:
+      CLASSE: mz.ac.isutc.scad.corba.RoboStock
+      JAVA_OPTS: -DORBInitRef.NameService=file:/ior/NameService.ior
+      REGIAO: Nampula
+      DB_URL: jdbc:postgresql://db-nampula:5432,db-nampula-rep:5432/scad?targetServerType=preferPrimary
+    volumes: [corba-ior:/ior]
+    depends_on: [corba-naming, auditoria, db-nampula]
+    networks: [scad-net]
+
 networks:
   scad-net:
 
@@ -159,3 +256,4 @@ volumes:
   dados-beira-rep:
   dados-nampula:
   dados-nampula-rep:
+  corba-ior:
