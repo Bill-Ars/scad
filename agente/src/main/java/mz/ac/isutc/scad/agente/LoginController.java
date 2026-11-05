@@ -39,7 +39,7 @@ public class LoginController {
     public ResponseEntity<Void> logout(HttpServletRequest pedido) {
         HttpSession sessao = pedido.getSession(false);
         if (sessao != null) sessao.invalidate();
-        return redirecionar("/login.html");
+        return redirecionar("/login.html?gestao");
     }
 
     private static ResponseEntity<Void> redirecionar(String destino) {

@@ -42,6 +42,7 @@ public class PainelController {
     private final BerkeleyController berkeley;
     private final HdfsCliente hdfs;
     private final OperacaoController operacao;
+    private final LojaController loja;
     private final RestClient http;
     private final RestClient httpLento;
 
@@ -56,7 +57,8 @@ public class PainelController {
     public PainelController(JdbcTemplate jdbc, @Value("${scad.regiao}") String regiao,
                             @Value("${scad.pares}") String pares, EstadoController estado,
                             StockController stock, BerkeleyController berkeley, HdfsCliente hdfs,
-                            OperacaoController operacao) {
+                            OperacaoController operacao, LojaController loja) {
+        this.loja = loja;
         this.jdbc = jdbc;
         this.regiao = regiao;
         this.pares = Arrays.stream(pares.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
@@ -257,6 +259,39 @@ public class PainelController {
     private static ResponseEntity<String> erroJson(HttpStatus estado, String mensagem) {
         return ResponseEntity.status(estado).contentType(MediaType.APPLICATION_JSON)
                 .body("{\"erro\":\"" + mensagem + "\"}");
+    }
+
+    /** Clientes registados (tabela replicada) com o total de pedidos feitos nos 3 armazens. */
+    @GetMapping("/clientes")
+    public Map<String, Object> clientes() {
+        List<Map<String, Object>> lista = jdbc.queryForList(
+                "SELECT id, nome, tipo, email, to_char(criado_em AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS criado " +
+                "FROM cliente ORDER BY criado_em DESC");
+        Map<String, Map<String, Object>> porId = new LinkedHashMap<>();
+        for (Map<String, Object> c : lista) {
+            c.put("pedidos", 0L);
+            c.put("unidades", 0L);
+            c.put("ultimo", null);
+            porId.put((String) c.get("id"), c);
+        }
+        List<String> semResposta = new ArrayList<>();
+        for (String p : todosOsNos()) {
+            try {
+                for (Object o : http.get().uri(p + "/loja/local/resumo-clientes").retrieve().body(List.class)) {
+                    Map<?, ?> r = (Map<?, ?>) o;
+                    Map<String, Object> c = porId.get(String.valueOf(r.get("cliente_id")));
+                    if (c == null) continue;
+                    c.put("pedidos", (Long) c.get("pedidos") + ((Number) r.get("pedidos")).longValue());
+                    c.put("unidades", (Long) c.get("unidades") + ((Number) r.get("unidades")).longValue());
+                    String u = (String) r.get("ultimo");
+                    if (c.get("ultimo") == null || u.compareTo((String) c.get("ultimo")) > 0) c.put("ultimo", u);
+                }
+            } catch (Exception e) {
+                semResposta.add(nomeDe(p));
+            }
+        }
+        Map<String, Object> pedidos = loja.pedidosDe(null);
+        return Map.of("clientes", lista, "pedidos", pedidos.get("linhas"), "semResposta", semResposta);
     }
 
     /** Liga ou desliga os clientes simulados em todos os nos que responderem. */

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCAD · Área do cliente</title>
+<link rel="icon" href="data:,">
+<style>
+  :root{ --bg:#eef2f8; --card:#fff; --card2:#f5f7fb; --line:#dfe5ee; --ink:#141f2b; --muted:#5b6878;
+         --accent:#0ca678; --accent-ink:#fff; --accent-bg:#e3f8f0; --azul:#3b5bdb; --bad:#c92a2a; --bad-bg:#ffe8e8; --warn:#9c6500; --warn-bg:#fff3d6; color-scheme:light }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0d1218; --card:#161f28; --card2:#1c2732; --line:#2a3846; --ink:#e7edf3; --muted:#9aa8b6;
+         --accent:#38d9a9; --accent-ink:#06281a; --accent-bg:#14342a; --azul:#7590ff; --bad:#ff8787; --bad-bg:#3b1e1e; --warn:#ffd43b; --warn-bg:#3a3014; color-scheme:dark } }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+  .ic{width:18px;height:18px;flex:none;vertical-align:-3px}
+  header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+         padding:12px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+  .marca{font-weight:700;font-size:19px;display:flex;align-items:center;gap:9px}
+  .marca .ic{width:26px;height:26px;color:var(--accent)}
+  .quem{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:grid;place-items:center;font-weight:700}
+  .quem small{display:block;color:var(--muted);font-size:12px;line-height:1.2}
+  .b{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 13px;border-radius:9px;cursor:pointer;
+     display:inline-flex;align-items:center;gap:7px;transition:transform .12s,border-color .2s,background .2s}
+  .b:hover{border-color:var(--accent)} .b:active{transform:scale(.97)}
+  .b.prim{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .b:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .b:focus-visible,input:focus-visible,.abas button:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+  .abas{max-width:1180px;margin:18px auto 0;padding:0 24px;display:flex;gap:6px}
+  .abas button{font:inherit;font-weight:600;border:0;background:none;color:var(--muted);padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;gap:7px;align-items:center}
+  .abas button.on{background:var(--card);color:var(--ink);box-shadow:0 2px 10px rgba(20,31,43,.08)}
+  .cont{max-width:1180px;margin:0 auto;padding:18px 24px 50px}
+  .vista{display:none}.vista.on{display:block;animation:entra .35s both}
+  @keyframes entra{from{opacity:0;transform:translateY(10px)}}
+  .grelhaPedido{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:22px;align-items:start}
+  h1{font-size:23px;margin:0 0 4px} h2{font-size:17px;margin:0 0 12px;display:flex;gap:8px;align-items:center}
+  .sec{color:var(--muted);font-size:14px}
+  .armazens{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px}
+  .armazens button{font:inherit;font-weight:600;padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;display:flex;gap:7px;align-items:center;transition:all .2s}
+  .armazens button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .produtos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .prod{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:transform .2s,box-shadow .2s;animation:entra .35s both}
+  .prod:hover{transform:translateY(-3px);box-shadow:0 14px 30px -20px rgba(20,31,43,.5)}
+  .prod .topo{display:flex;gap:10px;align-items:center}
+  .prod .icone{width:40px;height:40px;border-radius:11px;background:var(--accent-bg);color:var(--accent);display:grid;place-items:center}
+  .prod h3{margin:0;font-size:15.5px;line-height:1.3}
+  .disp{font-size:13px;font-weight:600;padding:3px 9px;border-radius:99px;align-self:flex-start}
+  .disp.ok{background:var(--accent-bg);color:var(--accent)} .disp.poucos{background:var(--warn-bg);color:var(--warn)} .disp.zero{background:var(--bad-bg);color:var(--bad)}
+  .qtd{display:flex;align-items:center;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .qtd button{font:inherit;border:0;background:var(--card2);color:var(--ink);width:34px;height:36px;cursor:pointer;font-size:17px}
+  .qtd input{font:inherit;border:0;width:52px;text-align:center;background:var(--card);color:var(--ink);height:36px}
+  .linha{display:flex;gap:8px;margin-top:auto;align-items:center}
+  .linha .b{flex:1;justify-content:center}
+  aside{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;position:sticky;top:76px}
+  ul.carrinho{list-style:none;margin:0 0 14px;padding:0}
+  ul.carrinho li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);animation:entra .25s both}
+  ul.carrinho .rm{border:0;background:none;color:var(--bad);cursor:pointer;padding:4px;border-radius:6px}
+  .contador{background:var(--accent);color:var(--accent-ink);border-radius:99px;font-size:12px;padding:1px 8px;transition:transform .2s}
+  .contador.pulsa{animation:pulsa .4s}
+  @keyframes pulsa{50%{transform:scale(1.35)}}
+  .msg{border-radius:11px;padding:12px 14px;margin-top:12px;font-size:14px;animation:entra .3s both}
+  .msg.ok{background:var(--accent-bg)} .msg.mau{background:var(--bad-bg);color:var(--bad)}
+  .vazio{color:var(--muted);padding:22px 0;text-align:center}
+  .pedido{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;animation:entra .35s both}
+  .pedido .cab{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .pedido ul{margin:0;padding-left:20px}
+  .etiqueta{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--card2);border:1px solid var(--line)}
+  @media (max-width:880px){ .grelhaPedido{grid-template-columns:1fr} aside{position:static} header,.cont,.abas{padding-left:16px;padding-right:16px} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<header>
+  <div class="marca"><svg class="ic"><use href="/icones.svg#caixa"/></svg>SCAD <span class="sec" style="font-weight:400">· Área do cliente</span></div>
+  <div class="quem">
+    <span class="avatar" id="avatar" aria-hidden="true">?</span>
+    <span><b id="nomeCliente">—</b><small id="tipoCliente"></small></span>
+    <button class="b" id="bSair"><svg class="ic"><use href="/icones.svg#sair"/></svg>Sair</button>
+  </div>
+</header>
+<nav class="abas" role="tablist">
+  <button class="on" data-v="pedir" role="tab"><svg class="ic"><use href="/icones.svg#carrinho"/></svg>Fazer pedido</button>
+  <button data-v="historico" role="tab"><svg class="ic"><use href="/icones.svg#recibo"/></svg>Os meus pedidos</button>
+</nav>
+
+<div class="cont">
+  <section class="vista on" id="v-pedir">
+    <div class="grelhaPedido">
+      <div>
+        <h1>Fazer um pedido</h1>
+        <p class="sec">Escolha o armazém que o vai servir, junte um ou vários produtos e confirme. O stock é atualizado no momento.</p>
+        <div class="armazens" id="armazens" role="group" aria-label="Armazém"></div>
+        <div class="produtos" id="produtos"><p class="vazio">A carregar produtos...</p></div>
+      </div>
+      <aside aria-labelledby="t-pedido">
+        <h2 id="t-pedido"><svg class="ic"><use href="/icones.svg#carrinho"/></svg>O seu pedido <span class="contador" id="contador">0</span></h2>
+        <p class="sec" id="armazemPedido" style="margin:-6px 0 10px"></p>
+        <ul class="carrinho" id="carrinho"></ul>
+        <button class="b prim" id="bPedir" style="width:100%;justify-content:center"><svg class="ic"><use href="/icones.svg#certo"/></svg>Confirmar pedido</button>
+        <div id="msg" role="status" aria-live="polite"></div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="vista" id="v-historico">
+    <h1>Os meus pedidos</h1>
+    <p class="sec">Todos os pedidos feitos com esta conta, nos três armazéns.</p>
+    <div id="historico" style="margin-top:16px"><p class="vazio">A carregar...</p></div>
+  </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic = n => `<svg class="ic"><use href="/icones.svg#${n}"/></svg>`;
+const REG = ['Maputo', 'Beira', 'Nampula'];
+const dataHora = t => new Date(String(t).replace(' ', 'T') + 'Z').toLocaleString('pt-PT');
+let regiao = 'Maputo', produtos = [], carrinho = {};
+try { if (REG.includes(localStorage.getItem('scad-loja'))) regiao = localStorage.getItem('scad-loja'); } catch (e) {}
+
+async function api(url, op) {
+  const r = await fetch(url, op);
+  if (r.status === 401) { location.href = '/login.html?cliente'; throw new Error('sessão terminada'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.erro || 'Não foi possível concluir. Tente de novo.');
+  return j;
+}
+
+/* ---------- Conta ---------- */
+(async () => {
+  try {
+    const c = await api('/conta/eu');
+    $('nomeCliente').textContent = c.nome;
+    $('tipoCliente').textContent = `${c.tipo} · ${c.email}`;
+    $('avatar').textContent = c.nome.trim().charAt(0).toUpperCase();
+  } catch (e) {}
+})();
+$('bSair').onclick = async () => { await fetch('/conta/sair', { method: 'POST' }); location.href = '/login.html?cliente'; };
+
+/* ---------- Abas ---------- */
+document.querySelectorAll('.abas button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.abas button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.vista').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.v));
+  if (b.dataset.v === 'historico') carregarHistorico();
+});
+
+/* ---------- Fazer pedido ---------- */
+function mensagem(html, ok) { $('msg').innerHTML = html ? `<div class="msg ${ok ? 'ok' : 'mau'}">${html}</div>` : ''; }
+function desenharArmazens() {
+  $('armazens').innerHTML = REG.map(r => `<button data-r="${r}" class="${r === regiao ? 'on' : ''}" aria-pressed="${r === regiao}">${ic('loja')}${r}</button>`).join('');
+  $('armazemPedido').textContent = 'Armazém de ' + regiao;
+}
+$('armazens').onclick = e => {
+  const b = e.target.closest('button'); if (!b || b.dataset.r === regiao) return;
+  if (Object.keys(carrinho).length && !confirm('Mudar de armazém esvazia o pedido. Continuar?')) return;
+  regiao = b.dataset.r; carrinho = {};
+  try { localStorage.setItem('scad-loja', regiao); } catch (e) {}
+  mensagem(''); desenharArmazens(); desenharCarrinho(); carregar();
+};
+async function carregar() {
+  try { produtos = await api('/loja/catalogo?regiao=' + encodeURIComponent(regiao)); desenharProdutos(); }
+  catch (e) { produtos = []; $('produtos').innerHTML = `<p class="vazio">${ic('alerta')} ${esc(e.message)}</p>`; }
+}
+function livreDe(p) { return p.disponivel - (carrinho[p.id] || 0); }
+function desenharProdutos() {
+  if (!produtos.length) { $('produtos').innerHTML = '<p class="vazio">Sem produtos neste armazém.</p>'; return; }
+  const valores = {}; document.querySelectorAll('[data-q]').forEach(i => valores[i.dataset.q] = i.value);
+  $('produtos').innerHTML = produtos.map((p, k) => {
+    const livre = livreDe(p);
+    const disp = livre <= 0 ? '<span class="disp zero">Esgotado de momento</span>' : `<span class="disp ${livre < 20 ? 'poucos' : 'ok'}">${livre} disponíveis</span>`;
+    return `<div class="prod" style="animation-delay:${k * 40}ms"><div class="topo"><span class="icone">${ic('caixa')}</span><div><h3>${esc(p.nome)}</h3><span class="sec">por ${esc(p.unidade)}</span></div></div>${disp}
+      <div class="linha"><span class="qtd"><button data-menos="${esc(p.id)}" aria-label="Menos">−</button><input type="number" min="1" value="${esc(valores[p.id] || 1)}" data-q="${esc(p.id)}" aria-label="Quantidade de ${esc(p.nome)}" ${livre > 0 ? '' : 'disabled'}><button data-mais="${esc(p.id)}" aria-label="Mais">+</button></span>
+      <button class="b prim" data-add="${esc(p.id)}" ${livre > 0 ? '' : 'disabled'}>${ic('mais')}Juntar</button></div></div>`;
+  }).join('');
+}
+$('produtos').onclick = e => {
+  const t = e.target.closest('button'); if (!t) return;
+  const id = t.dataset.add || t.dataset.menos || t.dataset.mais; if (!id) return;
+  const campo = document.querySelector(`[data-q="${CSS.escape(id)}"]`), p = produtos.find(x => x.id === id);
+  if (t.dataset.menos) { campo.value = Math.max(1, Number(campo.value) - 1); return; }
+  if (t.dataset.mais) { campo.value = Math.min(livreDe(p), Number(campo.value) + 1); return; }
+  const q = Number(campo.value), livre = livreDe(p);
+  if (!Number.isInteger(q) || q < 1) return mensagem('Indique uma quantidade de pelo menos 1.', false);
+  if (q > livre) return mensagem(`Só há ${livre} de ${esc(p.nome)} disponíveis.`, false);
+  carrinho[id] = (carrinho[id] || 0) + q; campo.value = 1;
+  mensagem(''); desenharCarrinho(true); desenharProdutos();
+};
+function desenharCarrinho(pulsar) {
+  const ids = Object.keys(carrinho);
+  $('carrinho').innerHTML = ids.length ? ids.map(id => {
+    const p = produtos.find(x => x.id === id) || { nome: id, unidade: '' };
+    return `<li><span><b>${carrinho[id]}</b> × ${esc(p.nome)}</span><button class="rm" data-rm="${esc(id)}" aria-label="Retirar ${esc(p.nome)}">${ic('lixo')}</button></li>`;
+  }).join('') : '<li class="vazio" style="border:0;display:block">Ainda não juntou produtos.</li>';
+  const n = ids.reduce((s, id) => s + carrinho[id], 0);
+  $('contador').textContent = n;
+  if (pulsar) { $('contador').classList.remove('pulsa'); void $('contador').offsetWidth; $('contador').classList.add('pulsa'); }
+  $('bPedir').disabled = !ids.length;
+}
+$('carrinho').onclick = e => { const b = e.target.closest('[data-rm]'); if (!b) return; delete carrinho[b.dataset.rm]; desenharCarrinho(); desenharProdutos(); };
+$('bPedir').onclick = async () => {
+  const itens = Object.entries(carrinho).map(([produtoId, quantidade]) => ({ produtoId, quantidade }));
+  if (!itens.length) return;
+  $('bPedir').disabled = true;
+  try {
+    const j = await api('/loja/pedido?regiao=' + encodeURIComponent(regiao), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itens }) });
+    mensagem(`${ic('certo')} <b>Pedido ${esc(j.pedido)} confirmado.</b><br>O armazém de ${esc(j.regiao)} vai preparar:<br>` +
+      j.itens.map(i => `${i.quantidade} × ${esc(i.nome)}`).join('<br>'), true);
+    carrinho = {};
+  } catch (err) { mensagem(`${ic('alerta')} ${esc(err.message)}`, false); }
+  desenharCarrinho(); carregar();
+};
+
+/* ---------- Historico ---------- */
+async function carregarHistorico() {
+  try {
+    const r = await api('/loja/meus-pedidos');
+    const pedidos = new Map();
+    r.linhas.forEach(l => { if (!pedidos.has(l.pedido)) pedidos.set(l.pedido, { ...l, itens: [] }); pedidos.get(l.pedido).itens.push(l); });
+    const aviso = r.semResposta.length ? `<p class="msg mau">${ic('alerta')} Os pedidos de ${esc(r.semResposta.join(', '))} não estão disponíveis agora.</p>` : '';
+    $('historico').innerHTML = aviso + ([...pedidos.values()].map((p, k) => `<div class="pedido" style="animation-delay:${k * 40}ms">
+      <div class="cab"><b>${ic('recibo')} ${esc(p.pedido)}</b><span class="etiqueta">${ic('loja')} ${esc(p.regiao)}</span><span class="sec">${esc(dataHora(p.criado))}</span></div>
+      <ul>${p.itens.map(i => `<li>${i.quantidade} × ${esc(i.produto)} <span class="sec">(${esc(i.unidade)})</span></li>`).join('')}</ul></div>`).join('')
+      || '<p class="vazio">Ainda não fez pedidos.</p>');
+  } catch (e) { $('historico').innerHTML = `<p class="vazio">${esc(e.message)}</p>`; }
+}
+
+desenharArmazens(); desenharCarrinho(); carregar();
+setInterval(() => { if (!document.hidden && $('v-pedir').classList.contains('on') && !document.activeElement.matches('input')) carregar(); }, 5000);
+</script>
+</body>
+</html>

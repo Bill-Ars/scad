@@ -36,6 +36,8 @@
   nav button:hover{background:var(--card2)}
   nav button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
   nav button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  nav a.loja{padding:10px 12px;border-radius:9px;color:var(--accent);font-weight:600;text-decoration:none}
+  nav a.loja:hover{background:var(--card2)}
   nav .alerta{background:var(--bad);color:#fff;border-radius:99px;font-size:12px;font-weight:700;padding:0 7px}
   .rodape{margin-top:auto;display:grid;gap:8px;font-size:13px;padding:0 6px}
   .rodape select{font:inherit;padding:6px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
@@ -137,6 +139,29 @@
     .grelha,.nos{grid-template-columns:1fr}
     .pesquisa{width:100%}
   }
+  .ic{width:18px;height:18px;flex:none;vertical-align:-3px}
+  nav button>span:first-child{display:flex;align-items:center;gap:10px}
+  nav a.loja{display:flex;align-items:center;gap:10px}
+  button.b,a.b{display:inline-flex;align-items:center;gap:7px;transition:transform .12s,border-color .2s,background .2s,box-shadow .2s}
+  button.b:active,a.b:active{transform:scale(.96)}
+  button.b.prim:hover{box-shadow:0 6px 16px -8px var(--accent)}
+  .kpi{position:relative;transition:transform .2s,box-shadow .2s}
+  .kpi:hover{transform:translateY(-3px);box-shadow:0 14px 30px -22px rgba(20,31,43,.55)}
+  .kpi .kic{position:absolute;right:14px;top:14px;width:36px;height:36px;border-radius:10px;background:var(--accent-bg);color:var(--accent);display:grid;place-items:center}
+  .kpis3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .card{transition:box-shadow .25s}
+  .card:hover{box-shadow:0 12px 32px -26px rgba(20,31,43,.6)}
+  .vista.on{animation:entra .35s both}
+  @keyframes entra{from{opacity:0;transform:translateY(10px)}}
+  .aviso{animation:desliza .3s both}
+  @keyframes desliza{from{opacity:0;transform:translateX(30px)}}
+  dialog[open]{animation:abre .22s both}
+  @keyframes abre{from{opacity:0;transform:scale(.96)}}
+  #t-cli tbody tr{cursor:pointer;transition:background .15s}
+  #t-cli tbody tr:hover,#t-cli tbody tr.sel{background:var(--accent-bg)}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:inline-grid;place-items:center;font-weight:700;margin-right:8px;vertical-align:middle}
+  @media (max-width:1000px){ .kpis3{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
 <body>
@@ -144,18 +169,20 @@
   <aside>
     <div class="logo">SCAD<small>Sistema de Compras Automáticas Distribuídas</small></div>
     <nav id="menu" aria-label="Secções">
-      <button data-v="inicio" class="on">Início</button>
-      <button data-v="produtos">Produtos <span class="alerta" id="m-baixo" hidden></span></button>
-      <button data-v="vendas">Vendas e entradas</button>
-      <button data-v="compras">Compras</button>
-      <button data-v="ficheiros">Faturas e relatórios</button>
-      <button data-v="sistema">Estado do sistema</button>
-      <button data-v="apresentacao">Apresentação</button>
+      <button data-v="inicio" class="on"><span><svg class="ic"><use href="/icones.svg#inicio"/></svg>Início</span></button>
+      <button data-v="produtos"><span><svg class="ic"><use href="/icones.svg#caixa"/></svg>Produtos</span> <span class="alerta" id="m-baixo" hidden></span></button>
+      <button data-v="vendas"><span><svg class="ic"><use href="/icones.svg#venda"/></svg>Vendas e entradas</span></button>
+      <button data-v="clientes"><span><svg class="ic"><use href="/icones.svg#pessoas"/></svg>Clientes</span></button>
+      <button data-v="compras"><span><svg class="ic"><use href="/icones.svg#camiao"/></svg>Compras ao fornecedor</span></button>
+      <button data-v="ficheiros"><span><svg class="ic"><use href="/icones.svg#ficheiro"/></svg>Faturas e relatórios</span></button>
+      <button data-v="sistema"><span><svg class="ic"><use href="/icones.svg#pulso"/></svg>Estado do sistema</span></button>
+      <button data-v="apresentacao"><span><svg class="ic"><use href="/icones.svg#ecra"/></svg>Apresentação</span></button>
+      <a class="loja" href="/loja.html" target="_blank" rel="noopener"><svg class="ic"><use href="/icones.svg#loja"/></svg>Área do cliente <svg class="ic"><use href="/icones.svg#externo"/></svg></a>
     </nav>
     <div class="rodape">
       <span class="sec">Hora do sistema<br><b class="mono" id="hora">—</b></span>
       <label>Aspeto<select id="tema"><option value="claro">Claro</option><option value="escuro">Escuro</option></select></label>
-      <form method="post" action="/logout"><button class="b" style="width:100%">Sair</button></form>
+      <form method="post" action="/logout"><button class="b" style="width:100%"><svg class="ic"><use href="/icones.svg#sair"/></svg>Sair</button></form>
     </div>
   </aside>
 
@@ -165,11 +192,11 @@
       <div class="titulo"><div><h1>Início</h1><p>Três armazéns regionais. Quando o stock de um produto atinge o mínimo, o sistema encomenda sozinho ao fornecedor.</p></div></div>
       <div id="estadoGeral"></div>
       <div class="kpis">
-        <div class="kpi"><b id="k-prod">—</b><span>produtos no catálogo</span></div>
-        <div class="kpi"><b id="k-uni">—</b><span>unidades em stock</span></div>
-        <div class="kpi"><b id="k-baixo">—</b><span>a precisar de reposição</span></div>
-        <div class="kpi"><b id="k-cam">—</b><span>encomendas a caminho</span></div>
-        <div class="kpi"><b id="k-fat">—</b><span>faturas guardadas</span></div>
+        <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#caixa"/></svg></i><b id="k-prod">—</b><span>produtos no catálogo</span></div>
+        <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#base"/></svg></i><b id="k-uni">—</b><span>unidades em stock</span></div>
+        <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#alerta"/></svg></i><b id="k-baixo">—</b><span>a precisar de reposição</span></div>
+        <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#camiao"/></svg></i><b id="k-cam">—</b><span>encomendas a caminho</span></div>
+        <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#recibo"/></svg></i><b id="k-fat">—</b><span>faturas guardadas</span></div>
       </div>
       <div class="grelha">
         <div class="card"><h2>Stock por produto e armazém <small>a linha marca o mínimo</small></h2><svg id="barras" width="100%" height="250" role="img" aria-label="Stock por produto e armazém"></svg><div class="legenda" id="leg-barras"></div></div>
@@ -181,14 +208,14 @@
     <section class="vista" id="v-produtos">
       <div class="titulo">
         <div><h1>Produtos</h1><p>O catálogo é o mesmo nos 3 armazéns. Cada alteração fica guardada em todos ao mesmo tempo, ou em nenhum.</p></div>
-        <div class="acoes"><input class="pesquisa" id="pesq" type="search" placeholder="Procurar por código ou nome" aria-label="Procurar produto"><button class="b prim" id="bNovo">Novo produto</button></div>
+        <div class="acoes"><input class="pesquisa" id="pesq" type="search" placeholder="Procurar por código ou nome" aria-label="Procurar produto"><button class="b prim" id="bNovo"><svg class="ic"><use href="/icones.svg#mais"/></svg>Novo produto</button></div>
       </div>
       <div class="card"><div class="tw"><table id="t-prod"></table></div></div>
     </section>
 
     <!-- ================= VENDAS ================= -->
     <section class="vista" id="v-vendas">
-      <div class="titulo"><div><h1>Vendas e entradas</h1><p>Cada operação altera o stock do armazém escolhido. Se atingir o mínimo, a compra arranca sozinha.</p></div></div>
+      <div class="titulo"><div><h1>Vendas e entradas</h1><p>Os clientes (pessoas, hospitais, bancos...) fazem pedidos na <a href="/loja.html" target="_blank" rel="noopener">área do cliente</a>; aqui também pode registar vendas ao balcão e entradas. Se o stock atingir o mínimo, a compra ao fornecedor arranca sozinha.</p></div></div>
       <div class="card">
         <div class="form">
           <label>Armazém<select id="vRegiao"></select></label>
@@ -227,6 +254,21 @@
         <div class="card"><h2>Relatórios de atividade <small>atualizados a cada minuto</small></h2><div class="tw"><table id="t-rel"></table></div></div>
         <div class="card"><h2>Registo de erros</h2><div class="tw"><table id="t-log"></table></div></div>
       </div>
+    </section>
+
+    <!-- ================= CLIENTES ================= -->
+    <section class="vista" id="v-clientes">
+      <div class="titulo"><div><h1>Clientes</h1><p>Pessoas e instituições com conta (hospitais, bancos, escolas...) e o que compraram em cada armazém. A conta fica registada nos 3 armazéns.</p></div>
+        <a class="b" href="/loja.html" target="_blank" rel="noopener"><svg class="ic"><use href="/icones.svg#loja"/></svg>Abrir a área do cliente</a></div>
+      <div class="kpis kpis3">
+        <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#pessoas"/></svg></i><b id="c-n">—</b><span>clientes registados</span></div>
+        <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#recibo"/></svg></i><b id="c-ped">—</b><span>pedidos feitos</span></div>
+        <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#caixa"/></svg></i><b id="c-uni">—</b><span>unidades compradas</span></div>
+      </div>
+      <div id="c-aviso"></div>
+      <div class="card"><h2>Lista de clientes <small>clique num cliente para ver o que comprou</small></h2><div class="tw"><table id="t-cli"></table></div></div>
+      <div class="card" id="c-detalhe" hidden><h2 id="c-detalheTit"></h2><div class="tw"><table id="t-cliPed"></table></div></div>
+      <div class="card"><h2>Pedidos recentes <small>dos três armazéns</small></h2><div class="tw"><table id="t-pedRec"></table></div></div>
     </section>
 
     <!-- ================= SISTEMA ================= -->
@@ -302,7 +344,7 @@
 const fetchOriginal = window.fetch;
 window.fetch = async (...args) => {
   const r = await fetchOriginal(...args);
-  if (r.status === 401) location.href = '/login.html';      // sessao expirada ou no reiniciado
+  if (r.status === 401) location.href = '/login.html?gestao';      // sessao expirada ou no reiniciado
   return r;
 };
 const $ = id => document.getElementById(id);
@@ -373,9 +415,20 @@ function abrirVista(v) {
   try { history.replaceState(null, '', '#' + v); } catch (e) {}
   window.scrollTo(0, 0);
   if (ultimo) desenhar(ultimo);
+  if (v === 'clientes') carregarClientes();
 }
 document.querySelectorAll('#menu button').forEach(b => b.onclick = () => abrirVista(b.dataset.v));
 document.querySelectorAll('[data-fechar]').forEach(b => b.onclick = () => b.closest('dialog').close());
+
+/* Os indicadores contam ate ao novo valor em vez de saltarem */
+function contar(el, valor) {
+  const alvo = Number(valor) || 0, de = Number(el.dataset.v ?? alvo);
+  el.dataset.v = alvo;
+  if (de === alvo || matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = num(alvo); return; }
+  const t0 = performance.now(), dur = 600;
+  const passo = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = num(Math.round(de + (alvo - de) * e)); if (k < 1) requestAnimationFrame(passo); };
+  requestAnimationFrame(passo);
+}
 
 /* ---------- Dados ---------- */
 let ultimo = null, produtos = [];
@@ -427,22 +480,23 @@ function desenharInicio(r, baixos) {
   html($('estadoGeral'), p.length
     ? `<div class="banner mau">Há ${p.length === 1 ? 'um problema' : p.length + ' problemas'} no sistema<ul>${p.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`
     : `<div class="banner ok">Tudo a funcionar: os 3 armazéns, os ficheiros e os fornecedores estão ligados.</div>`);
-  $('k-prod').textContent = produtos.length;
-  $('k-uni').textContent = num(r.stock.linhas.reduce((s, l) => s + l.quantidade, 0));
-  $('k-baixo').textContent = baixos.filter(l => !l.em_encomenda).length;
-  $('k-cam').textContent = num(r.ordensPorEstado.ENVIADA || 0);
-  $('k-fat').textContent = num(r.hdfs.faturasTotal || 0);
+  contar($('k-prod'), produtos.length);
+  contar($('k-uni'), r.stock.linhas.reduce((s, l) => s + l.quantidade, 0));
+  contar($('k-baixo'), baixos.filter(l => !l.em_encomenda).length);
+  contar($('k-cam'), r.ordensPorEstado.ENVIADA || 0);
+  contar($('k-fat'), r.hdfs.faturasTotal || 0);
   if ($('v-inicio').classList.contains('on')) barras(r.stock.linhas);
   html($('feed'), (r.auditoria || []).filter(a => frase(a)).slice(0, 8).map(a =>
     `<li><time>${esc(horaLocal(a.hora))}</time><span>${esc(frase(a))}</span></li>`).join('') || '<li class="vazio" style="display:block">Ainda sem atividade. Regista uma venda para começar.</li>');
 }
 const resultadoCompra = r => /CONCLUIDA/.test(r) ? 'encomenda feita ao fornecedor' : /FALHOU/.test(r) ? 'o fornecedor não respondeu, volta a tentar em 30 segundos' : /ABORTADA/.test(r) ? 'encomenda cancelada porque um armazém não respondeu, volta a tentar' : 'nada a encomendar';
+const pedidoDe = d => { const m = String(d).match(/\| pedido (\S+) de (.+)$/); return m ? { numero: m[1], cliente: m[2] } : null; };
 /* Traduz a auditoria tecnica para uma frase. As operacoes internas do 2PC ficam so na auditoria completa */
 function frase(a) {
   const reg = regiaoDe(a.no_origem), d = String(a.detalhe), id = d.split(/[ :]/)[0];
   const qt = d.match(/([+-]\d+) -> (\d+)/);
   switch (a.operacao) {
-    case 'VENDA': return `Venda em ${reg}: ${qt ? qt[1].slice(1) : ''} de ${nomeProduto(id)}, ficam ${qt ? qt[2] : '?'}.`;
+    case 'VENDA': { const p = pedidoDe(d); return `${p ? `Pedido de ${p.cliente}` : 'Venda'} em ${reg}: ${qt ? qt[1].slice(1) : ''} de ${nomeProduto(id)}, ficam ${qt ? qt[2] : '?'}.`; }
     case 'ENTRADA': return `Entrada em ${reg}: ${qt ? qt[1].slice(1) : ''} de ${nomeProduto(id)}, ficam ${qt ? qt[2] : '?'}.`;
     case 'ENTREGA': return `Chegou mercadoria a ${reg}: ${qt ? qt[1].slice(1) : ''} de ${nomeProduto(id)}.`;
     case 'COMPRA-AUTO': return `${reg}, ${nomeProduto(id)}: ${resultadoCompra(d.split(' | ')[0].split(': ').slice(1).join(': '))}.`;
@@ -505,7 +559,7 @@ function desenharProdutos() {
       const total = Object.values(p.reg).reduce((s, l) => s + l.quantidade, 0);
       return [esc(p.id), `<b>${esc(p.nome)}</b>`, esc(p.unidade), f ? esc(f.nome) : esc(p.fornecedor),
         ...REG.map(r => celulaStock(p.reg[r])), `<b>${num(total)}</b>`, estadoProduto(p),
-        `<div class="acoes"><button class="b peq prim" data-a="vender" data-id="${esc(p.id)}">Vender</button><button class="b peq" data-a="entrada" data-id="${esc(p.id)}">Entrada</button><button class="b peq" data-a="editar" data-id="${esc(p.id)}">Editar</button><button class="b peq perigo" data-a="apagar" data-id="${esc(p.id)}">Apagar</button></div>`];
+        `<div class="acoes"><button class="b peq prim" data-a="vender" data-id="${esc(p.id)}"><svg class="ic"><use href="/icones.svg#venda"/></svg>Vender</button><button class="b peq" data-a="entrada" data-id="${esc(p.id)}"><svg class="ic"><use href="/icones.svg#entrada"/></svg>Entrada</button><button class="b peq" data-a="editar" data-id="${esc(p.id)}" title="Editar" aria-label="Editar"><svg class="ic"><use href="/icones.svg#editar"/></svg></button><button class="b peq perigo" data-a="apagar" data-id="${esc(p.id)}" title="Apagar" aria-label="Apagar"><svg class="ic"><use href="/icones.svg#lixo"/></svg></button></div>`];
     }), q ? 'Nenhum produto encontrado.' : 'Sem produtos. Regista o primeiro.');
 }
 $('pesq').oninput = desenharProdutos;
@@ -640,11 +694,12 @@ function desenharVendas(r) {
   const vivos = r.nos.filter(n => n.online);
   simuladaLigada = vivos.length > 0 && vivos.every(n => n.vendasAuto);
   $('bSim').textContent = simuladaLigada ? 'Desligar' : 'Ligar';
-  const tipo = { VENDA: ['p-info', 'Venda'], 'VENDA-AUTO': ['p-info', 'Venda simulada'], ENTRADA: ['p-ok', 'Entrada'], ENTREGA: ['p-ok', 'Entrega do fornecedor'] };
-  tabela($('t-mov'), ['Data e hora', 'Tipo', 'Armazém', 'Produto', '#Quantidade', '#Fica com'],
+  const tipo = { PEDIDO: ['p-info', 'Pedido de cliente'], VENDA: ['p-info', 'Venda ao balcão'], 'VENDA-AUTO': ['p-info', 'Venda simulada'], ENTRADA: ['p-ok', 'Entrada'], ENTREGA: ['p-ok', 'Entrega do fornecedor'] };
+  tabela($('t-mov'), ['Data e hora', 'Tipo', 'Cliente', 'Armazém', 'Produto', '#Quantidade', '#Fica com'],
     (r.movimentos || []).map(a => {
-      const d = String(a.detalhe), id = d.split(' ')[0], qt = d.match(/([+-]\d+) -> (\d+)/), t = tipo[a.operacao] || ['p-info', a.operacao];
-      return [esc(dataHoraLocal(a.hora)), pill(t[0], t[1]), esc(regiaoDe(a.no_origem)), `${esc(id)} · ${esc(nomeProduto(id))}`, qt ? esc(qt[1]) : '', qt ? esc(qt[2]) : ''];
+      const d = String(a.detalhe), id = d.split(' ')[0], qt = d.match(/([+-]\d+) -> (\d+)/), t = (pedidoDe(d) ? tipo.PEDIDO : tipo[a.operacao]) || ['p-info', a.operacao];
+      const ped = pedidoDe(d);
+      return [esc(dataHoraLocal(a.hora)), pill(t[0], t[1]), ped ? `${esc(ped.cliente)} <span class="sec">${esc(ped.numero)}</span>` : '<span class="sec">—</span>', esc(regiaoDe(a.no_origem)), `${esc(id)} · ${esc(nomeProduto(id))}`, qt ? esc(qt[1]) : '', qt ? esc(qt[2]) : ''];
     }), 'Ainda sem movimentos.');
 }
 
@@ -771,7 +826,7 @@ function passosGuiao() {
   return [
     { t: 'O que é o SCAD', d: 'Abre o Início: 3 armazéns, cada um com a sua base de dados. O stock de cada região só existe no seu nó (fragmentação horizontal) e tem uma réplica.', b: [['Abrir Início', () => abrirVista('inicio')], ['Ver estado dos nós', () => abrirVista('sistema')]] },
     { t: 'Gerir produtos (2PC)', d: 'Regista um produto: fica gravado nos 3 armazéns ou em nenhum. O código é atribuído pelo sistema.', b: [['Registar produto', () => { abrirVista('produtos'); abrirProduto(); }]] },
-    { t: 'Venda que dispara uma compra', d: 'Vende até ao mínimo. O monitor deteta, compra, e a mercadoria chega 30 s depois. Acompanha em Compras.', b: [['Vender até ao mínimo em Maputo', () => venderAteMinimo('REST', ['Maputo'])], ['Ver Compras', () => abrirVista('compras')]] },
+    { t: 'O cliente faz um pedido', d: 'Na área do cliente, uma instituição (por exemplo, um hospital) pede um ou vários produtos a um armazém. O stock desce; quando atinge o mínimo, o monitor deteta e o SCAD encomenda ao fornecedor sozinho. A mercadoria chega 30 s depois. Acompanha em Vendas e entradas e em Compras.', b: [['Abrir a área do cliente', () => window.open('/loja.html', '_blank', 'noopener')], ['Ver Compras', () => abrirVista('compras')], ['Atalho: vender até ao mínimo em Maputo', () => venderAteMinimo('REST', ['Maputo'])]] },
     { t: 'Exclusão mútua (Ricart-Agrawala)', d: 'Dois armazéns detetam a falta do mesmo produto ao mesmo tempo. Só um compra o lote, por REST/JSON; o outro vê que já foi comprado e não duplica.', b: [['Compra simultânea Maputo + Beira', () => compraSimultanea()]] },
     { t: 'Fornecedor legado (SOAP/XML)', d: 'Os produtos do segundo fornecedor seguem pela rota SOAP, com contrato WSDL.', b: [['Compra por SOAP em Nampula', () => venderAteMinimo('SOAP', ['Nampula'], true)], ['Abrir WSDL', () => window.open('http://localhost:8092/ws?wsdl', '_blank', 'noopener')]] },
     { t: 'Relógios (Berkeley)', d: 'Desacerta os relógios e vê as linhas voltarem a juntar-se. Todas as transações e auditorias usam esta hora.', b: [['Abrir relógios', () => { abrirVista('sistema'); $('detalhes').open = true; }]] },
@@ -869,6 +924,50 @@ async function compraSimultanea() {
   return `${candidato.nome}\n${out.join('\n')}\n\n` + textoCompra(await pedir('/painel/compra?' + new URLSearchParams({ produtoId: candidato.id, regioes: regioes.join(',') })));
 }
 
+/* ---------- Clientes ---------- */
+let clienteSel = null, dadosClientes = null;
+async function carregarClientes() {
+  try {
+    const r = await (await fetch('/painel/clientes')).json();
+    dadosClientes = r;
+    desenharClientes();
+  } catch (e) { html($('c-aviso'), '<div class="banner mau">Não foi possível carregar os clientes.</div>'); }
+}
+function desenharClientes() {
+  const r = dadosClientes; if (!r) return;
+  contar($('c-n'), r.clientes.length);
+  contar($('c-ped'), r.clientes.reduce((s, c) => s + c.pedidos, 0));
+  contar($('c-uni'), r.clientes.reduce((s, c) => s + c.unidades, 0));
+  html($('c-aviso'), r.semResposta.length ? `<div class="banner mau">Sem dados de ${esc(r.semResposta.join(', '))}: os totais podem estar incompletos.</div>` : '');
+  tabela($('t-cli'), ['Cliente', 'Tipo', 'Email', '#Pedidos', '#Unidades', 'Último pedido', 'Cliente desde'], r.clientes.map(c => [
+    `<span class="avatar">${esc(c.nome.charAt(0).toUpperCase())}</span><b>${esc(c.nome)}</b>`, pill('p-info', c.tipo), esc(c.email),
+    num(c.pedidos), num(c.unidades), c.ultimo ? esc(dataHoraLocal(c.ultimo)) : '<span class="sec">ainda sem pedidos</span>', esc(dataHoraLocal(c.criado))]),
+    'Ainda não há clientes. Crie uma conta na área do cliente.');
+  [...$('t-cli').querySelectorAll('tbody tr')].forEach((tr, i) => {
+    const c = r.clientes[i]; if (!c) return;
+    tr.dataset.id = c.id; tr.tabIndex = 0;
+    tr.classList.toggle('sel', c.id === clienteSel);
+  });
+  const linha = p => [esc(dataHoraLocal(p.criado)), `<span class="mono">${esc(p.pedido)}</span>`, esc(p.regiao), `${esc(p.produto_id)} · ${esc(p.produto)}`, num(p.quantidade)];
+  tabela($('t-pedRec'), ['Data e hora', 'Pedido', 'Cliente', 'Armazém', 'Produto', '#Quantidade'],
+    r.pedidos.slice(0, 25).map(p => { const l = linha(p); l.splice(2, 0, `${esc(p.cliente)} <span class="sec">${esc(p.tipo)}</span>`); return l; }), 'Ainda não há pedidos.');
+  const sel = r.clientes.find(c => c.id === clienteSel);
+  $('c-detalhe').hidden = !sel;
+  if (sel) {
+    $('c-detalheTit').innerHTML = `${esc(sel.nome)} <small>${esc(sel.tipo)} · ${num(sel.pedidos)} pedidos · ${num(sel.unidades)} unidades</small>`;
+    tabela($('t-cliPed'), ['Data e hora', 'Pedido', 'Armazém', 'Produto', '#Quantidade'], r.pedidos.filter(p => p.cliente_id === sel.id).map(linha), 'Este cliente ainda não fez pedidos.');
+  }
+}
+function escolherCliente(e) {
+  const tr = e.target.closest('tr[data-id]'); if (!tr) return;
+  if (e.type === 'keydown' && e.key !== 'Enter') return;
+  clienteSel = clienteSel === tr.dataset.id ? null : tr.dataset.id;
+  desenharClientes();
+  if (clienteSel) $('c-detalhe').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+$('t-cli').addEventListener('click', escolherCliente);
+$('t-cli').addEventListener('keydown', escolherCliente);
+
 /* ---------- Ciclo de atualizacao ---------- */
 async function atualizar() {
   try {
@@ -876,6 +975,7 @@ async function atualizar() {
     r.nos.forEach(n => { if (n.online && historico[n.regiao]) { historico[n.regiao].push(n.desvioMs / 1000); if (historico[n.regiao].length > 40) historico[n.regiao].shift(); } });
     ultimo = r;
     desenhar(r);
+    if ($('v-clientes').classList.contains('on')) carregarClientes();
   } catch (e) {
     $('hora').textContent = 'sem resposta';
     html($('estadoGeral'), '<div class="banner mau">O armazém de Maputo não responde. Abre o sistema pela Beira (localhost:8082) ou por Nampula (localhost:8083).</div>');

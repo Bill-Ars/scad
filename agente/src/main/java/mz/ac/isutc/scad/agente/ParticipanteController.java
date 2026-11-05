@@ -127,6 +127,9 @@ public class ParticipanteController {
                     throw new SQLException("produto inexistente em " + regiao);
                 }
             }
+            case "CLIENTE_CRIAR" -> escrever(c,
+                    "INSERT INTO cliente (id, nome, tipo, email, senha_hash) VALUES (?, ?, ?, ?, ?)",
+                    p.get("id"), texto(p, "nome"), texto(p, "tipoCliente"), texto(p, "email"), p.get("senhaHash"));
             default -> throw new SQLException("tipo de transacao desconhecido: " + tipo);
         }
     }

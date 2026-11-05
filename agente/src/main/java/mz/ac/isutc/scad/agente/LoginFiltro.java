@@ -31,8 +31,17 @@ public class LoginFiltro extends OncePerRequestFilter {
         // Sem isto, o navegador pode mostrar o painel guardado em cache sem passar pelo login
         if (pagina) resposta.setHeader("Cache-Control", "no-store");
 
+        // Area do cliente: exige uma conta de cliente (a senha da gestao nao serve)
+        if (caminho.equals("/loja.html")) {
+            resposta.setHeader("Cache-Control", "no-store");
+            if (ContaController.clienteDaSessao(pedido) == null) {
+                resposta.sendRedirect("/login.html?cliente");
+                return;
+            }
+        }
+
         if ((pagina || api) && !autenticado(pedido)) {
-            if (pagina) resposta.sendRedirect("/login.html");
+            if (pagina) resposta.sendRedirect("/login.html?gestao");
             else resposta.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }

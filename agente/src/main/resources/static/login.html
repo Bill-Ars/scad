@@ -1,36 +1,162 @@
 <!doctype html>
-<html lang="pt" data-tema="claro">
+<html lang="pt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SCAD · Entrar</title>
 <link rel="icon" href="data:,">
-<script>try { document.documentElement.setAttribute('data-tema', localStorage.getItem('scad-tema') || 'claro'); } catch (e) {}</script>
 <style>
-  :root, [data-tema="escuro"]{ --bg:#0b1014; --card:#131c22; --line:#22303a; --ink:#e6edf1; --muted:#8a9aa5; --accent:#2ee59d; --glow:rgba(46,229,157,.18); --bad:#ff6b6b; --btn-ink:#06281a; }
-  [data-tema="oceano"]{ --bg:#071226; --card:#0d1f3d; --line:#1c3463; --ink:#e4ecfa; --muted:#8ea3c7; --accent:#38bdf8; --glow:rgba(56,189,248,.20); --bad:#fb7185; --btn-ink:#04223a; }
-  [data-tema="claro"]{ --bg:#eef2f7; --card:#ffffff; --line:#dde3eb; --ink:#14202b; --muted:#5d6b78; --accent:#4f46e5; --glow:rgba(79,70,229,.10); --bad:#dc2626; --btn-ink:#ffffff; }
+  :root{ --bg:#eef2f8; --card:#ffffff; --card2:#f5f7fb; --line:#dfe5ee; --ink:#141f2b; --muted:#5b6878;
+         --accent:#3b5bdb; --accent2:#0ca678; --accent-ink:#fff; --bad:#c92a2a; --bad-bg:#ffe8e8; color-scheme:light }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0d1218; --card:#161f28; --card2:#1c2732; --line:#2a3846; --ink:#e7edf3; --muted:#9aa8b6;
+         --accent:#7590ff; --accent2:#38d9a9; --accent-ink:#0b1430; --bad:#ff8787; --bad-bg:#3b1e1e; color-scheme:dark } }
   *{box-sizing:border-box}
-  html{color-scheme:dark} [data-tema="claro"]{color-scheme:light}
-  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:16px;color:var(--ink);font:14px "Segoe UI",Inter,system-ui,sans-serif;
-       background:radial-gradient(1200px 600px at 10% -10%,var(--glow),transparent 60%),var(--bg)}
-  form{width:100%;max-width:340px;display:grid;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px}
-  h1{margin:0;font-size:20px} p{margin:0;color:var(--muted)}
-  label{font-weight:600;font-size:13px;display:grid;gap:6px;margin-top:6px}
-  input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
-  input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  button{font:inherit;font-weight:600;color:var(--btn-ink);background:var(--accent);border:0;border-radius:10px;padding:11px;cursor:pointer}
-  #erro{color:var(--bad)} [hidden]{display:none}
+  body{margin:0;min-height:100vh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+  .ic{width:20px;height:20px;flex:none}
+  
+  .lado{position:relative;overflow:hidden;padding:48px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;
+        background:linear-gradient(140deg,#24366f 0%,#3b5bdb 55%,#0ca678 120%)}
+  .lado::before,.lado::after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.08);animation:flutua 9s ease-in-out infinite}
+  .lado::before{width:420px;height:420px;right:-120px;top:-120px}
+  .lado::after{width:300px;height:300px;left:-90px;bottom:-90px;animation-delay:-4s}
+  @keyframes flutua{50%{transform:translate(16px,22px) scale(1.04)}}
+  .marca{font-size:24px;font-weight:700;display:flex;align-items:center;gap:10px;position:relative}
+  .marca .ic{width:30px;height:30px}
+  .lado h1{font-size:34px;line-height:1.2;margin:0 0 14px;max-width:460px;position:relative}
+  .lado p{opacity:.9;max-width:440px;margin:0;position:relative}
+  .passos{display:grid;gap:12px;margin-top:28px;position:relative}
+  .passos div{display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 14px;animation:entra .6s both}
+  .passos div:nth-child(2){animation-delay:.12s}.passos div:nth-child(3){animation-delay:.24s}
+  .lado small{opacity:.75;position:relative}
+  main{display:grid;place-items:center;padding:32px 20px}
+  .caixa{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 20px 50px -30px rgba(20,31,43,.45);animation:entra .45s both}
+  @keyframes entra{from{opacity:0;transform:translateY(12px)}}
+  .abas{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:20px}
+  .abas button{font:inherit;font-weight:600;border:0;background:none;color:var(--muted);padding:9px;border-radius:9px;cursor:pointer;display:flex;gap:8px;align-items:center;justify-content:center;transition:background .2s,color .2s}
+  .abas button.on{background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(20,31,43,.12)}
+  h2{margin:0 0 4px;font-size:21px} .sub{color:var(--muted);margin:0 0 18px;font-size:14px}
+  label{display:grid;gap:6px;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:14px}
+  .campo{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:0 12px;transition:border-color .2s,box-shadow .2s}
+  .campo:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+  .campo .ic{color:var(--muted);width:18px;height:18px}
+  input,select{font:inherit;color:var(--ink);background:transparent;border:0;outline:0;padding:11px 0;width:100%}
+  .botao{font:inherit;font-weight:600;width:100%;border:0;border-radius:10px;padding:12px;cursor:pointer;color:var(--accent-ink);background:var(--accent);
+         display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s,filter .2s}
+  .botao:hover{filter:brightness(1.07)} .botao:active{transform:scale(.98)} .botao:disabled{opacity:.6;cursor:wait}
+  .botao.verde{background:var(--accent2)}
+  .botao:focus-visible,.abas button:focus-visible,.troca button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .troca{text-align:center;margin:14px 0 0;color:var(--muted);font-size:14px}
+  .troca button{font:inherit;border:0;background:none;color:var(--accent);font-weight:600;cursor:pointer;padding:0}
+  .erro{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:14px;display:flex;gap:8px;align-items:flex-start;animation:abana .35s}
+  @keyframes abana{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  [hidden]{display:none!important}
+  .painel{animation:entra .3s both}
+  @media (max-width:860px){ body{grid-template-columns:1fr} .lado{padding:28px 20px} .lado h1{font-size:26px} .passos{display:none} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
 <body>
-<form method="post" action="/login">
-  <h1>SCAD</h1>
-  <p>Gestão de Stock e Compras</p>
-  <label>Senha<input type="password" name="senha" autocomplete="current-password" required autofocus></label>
-  <p id="erro" role="alert" hidden>Senha incorreta.</p>
-  <button type="submit">Entrar</button>
-</form>
-<script>document.getElementById('erro').hidden = !location.search.includes('erro');</script>
+<section class="lado" aria-hidden="true">
+  <div class="marca"><svg class="ic"><use href="/icones.svg#caixa"/></svg>SCAD</div>
+  <div>
+    <h1>Os seus pedidos, sempre com stock.</h1>
+    <p>Pessoas, hospitais, bancos e escolas pedem aos armazéns de Maputo, Beira e Nampula. Quando o stock baixa, o SCAD encomenda sozinho ao fornecedor.</p>
+    <div class="passos">
+      <div><svg class="ic"><use href="/icones.svg#carrinho"/></svg>O cliente faz o pedido</div>
+      <div><svg class="ic"><use href="/icones.svg#caixa"/></svg>O stock do armazém é atualizado</div>
+      <div><svg class="ic"><use href="/icones.svg#camiao"/></svg>No mínimo, o SCAD pede reposição</div>
+    </div>
+  </div>
+  <small>Sistema de Compras Automáticas Distribuídas</small>
+</section>
+
+<main>
+  <div class="caixa">
+    <div class="abas" role="tablist">
+      <button role="tab" id="aCliente" aria-selected="true" class="on"><svg class="ic"><use href="/icones.svg#pessoa"/></svg>Sou cliente</button>
+      <button role="tab" id="aGestao" aria-selected="false"><svg class="ic"><use href="/icones.svg#cadeado"/></svg>Gestão</button>
+    </div>
+
+    <form id="fEntrar" class="painel">
+      <h2>Entrar</h2>
+      <p class="sub">Aceda à sua conta para fazer pedidos.</p>
+      <div class="erro" id="eEntrar" role="alert" hidden></div>
+      <label>Email<span class="campo"><svg class="ic"><use href="/icones.svg#pessoa"/></svg><input type="email" id="lEmail" required autocomplete="email"></span></label>
+      <label>Senha<span class="campo"><svg class="ic"><use href="/icones.svg#cadeado"/></svg><input type="password" id="lSenha" required autocomplete="current-password"></span></label>
+      <button class="botao" id="bEntrar">Entrar <svg class="ic"><use href="/icones.svg#seta"/></svg></button>
+      <p class="troca">Ainda não tem conta? <button type="button" data-ir="registar">Criar conta</button></p>
+    </form>
+
+    <form id="fRegistar" class="painel" hidden>
+      <h2>Criar conta</h2>
+      <p class="sub">Para pessoas ou instituições. A conta fica válida nos três armazéns.</p>
+      <div class="erro" id="eRegistar" role="alert" hidden></div>
+      <label id="lNome">O seu nome<span class="campo"><svg class="ic"><use href="/icones.svg#pessoa"/></svg><input id="rNome" required minlength="2" maxlength="60" placeholder="Ex.: Ana Machava" autocomplete="name"></span></label>
+      <label>Tipo de cliente<span class="campo"><svg class="ic"><use href="/icones.svg#pessoas"/></svg><select id="rTipo"><option value="Particular">Pessoa particular</option><option>Hospital</option><option>Banco</option><option>Escola</option><option>Empresa</option><option>ONG</option><option>Outro</option></select></span></label>
+      <label>Email<span class="campo"><svg class="ic"><use href="/icones.svg#pessoa"/></svg><input type="email" id="rEmail" required maxlength="120" autocomplete="email"></span></label>
+      <label>Senha (mínimo 8 caracteres)<span class="campo"><svg class="ic"><use href="/icones.svg#cadeado"/></svg><input type="password" id="rSenha" required minlength="8" maxlength="100" autocomplete="new-password"></span></label>
+      <button class="botao verde" id="bRegistar">Criar conta <svg class="ic"><use href="/icones.svg#certo"/></svg></button>
+      <p class="troca">Já tem conta? <button type="button" data-ir="entrar">Entrar</button></p>
+    </form>
+
+    <form id="fGestao" class="painel" method="post" action="/login" hidden>
+      <h2>Área de gestão</h2>
+      <p class="sub">Para a equipa do SCAD: stock, compras, clientes e estado do sistema.</p>
+      <div class="erro" id="eGestao" role="alert" hidden><svg class="ic"><use href="/icones.svg#alerta"/></svg>Senha incorreta.</div>
+      <label>Senha<span class="campo"><svg class="ic"><use href="/icones.svg#cadeado"/></svg><input type="password" name="senha" id="gSenha" required autocomplete="current-password"></span></label>
+      <button class="botao">Entrar na gestão <svg class="ic"><use href="/icones.svg#seta"/></svg></button>
+    </form>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+function mostrar(qual) {
+  const cliente = qual !== 'gestao';
+  $('aCliente').classList.toggle('on', cliente); $('aCliente').setAttribute('aria-selected', cliente);
+  $('aGestao').classList.toggle('on', !cliente); $('aGestao').setAttribute('aria-selected', !cliente);
+  $('fEntrar').hidden = qual !== 'entrar'; $('fRegistar').hidden = qual !== 'registar'; $('fGestao').hidden = qual !== 'gestao';
+  const foco = { entrar: 'lEmail', registar: 'rNome', gestao: 'gSenha' }[qual];
+  setTimeout(() => $(foco).focus(), 30);
+}
+$('aCliente').onclick = () => mostrar('entrar');
+$('aGestao').onclick = () => mostrar('gestao');
+document.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => mostrar(b.dataset.ir));
+
+function erro(id, texto) {
+  const e = $(id);
+  e.innerHTML = '<svg class="ic"><use href="/icones.svg#alerta"/></svg><span></span>';
+  e.querySelector('span').textContent = texto;
+  e.hidden = false;
+  e.style.animation = 'none'; void e.offsetWidth; e.style.animation = '';
+}
+async function enviar(url, corpo, botao, caixaErro) {
+  botao.disabled = true;
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.erro || 'Não foi possível continuar. Tente de novo.');
+    location.href = '/loja.html';
+  } catch (e) { erro(caixaErro, e.message); }
+  botao.disabled = false;
+}
+$('fEntrar').onsubmit = e => { e.preventDefault(); enviar('/conta/entrar', { email: $('lEmail').value, senha: $('lSenha').value }, $('bEntrar'), 'eEntrar'); };
+$('fRegistar').onsubmit = e => {
+  e.preventDefault();
+  enviar('/conta/registar', { nome: $('rNome').value, tipo: $('rTipo').value, email: $('rEmail').value, senha: $('rSenha').value }, $('bRegistar'), 'eRegistar');
+};
+/* O campo do nome muda conforme seja uma pessoa ou uma instituicao */
+$('rTipo').onchange = () => {
+  const pessoa = $('rTipo').value === 'Particular';
+  $('lNome').firstChild.textContent = pessoa ? 'O seu nome' : 'Nome da instituição';
+  $('rNome').placeholder = pessoa ? 'Ex.: Ana Machava' : 'Ex.: Hospital Central de Maputo';
+  $('rNome').autocomplete = pessoa ? 'name' : 'organization';
+};
+$('rNome').parentElement.parentElement.before($('rTipo').parentElement.parentElement);
+const q = location.search;
+if (q.includes('erro')) { mostrar('gestao'); $('eGestao').hidden = false; }
+else if (q.includes('gestao')) mostrar('gestao');
+else mostrar('entrar');
+</script>
 </body>
 </html>
