@@ -18,6 +18,13 @@ import java.util.Map;
 @RestController
 public class StockController {
 
+    /**
+     * Ordem que ainda vai trazer mercadoria. Uma CONFIRMADA so conta durante 2 minutos: depois disso
+     * o envio ao fornecedor ficou a meio (coordenador caiu) e o lote pode voltar a ser comprado.
+     */
+    static final String ORDEM_ABERTA =
+            "(o.estado = 'ENVIADA' OR (o.estado = 'CONFIRMADA' AND o.criada_em > now() - interval '2 minutes'))";
+
     private final JdbcTemplate jdbc;
     private final String regiao;
     private final List<String> pares;
@@ -42,8 +49,10 @@ public class StockController {
     @GetMapping("/stock")
     public List<Map<String, Object>> stockLocal() {
         return jdbc.queryForList(
-            "SELECT s.produto_id, p.nome, s.regiao, s.quantidade, s.limite_minimo, " +
-            "       s.fornecedor_id, s.quantidade < s.limite_minimo AS abaixo_minimo " +
+            "SELECT s.produto_id, p.nome, p.unidade, s.regiao, s.quantidade, s.limite_minimo, " +
+            "       s.fornecedor_id, s.quantidade <= s.limite_minimo AS abaixo_minimo, " +
+            "       (SELECT COALESCE(SUM(o.quantidade), 0) FROM ordem_compra o " +
+            "        WHERE o.produto_id = s.produto_id AND " + ORDEM_ABERTA + ") AS em_encomenda " +
             "FROM stock s JOIN produto p ON p.id = s.produto_id " +
             "ORDER BY s.produto_id");
     }
@@ -51,8 +60,13 @@ public class StockController {
     /** Reconstrucao: STOCK = STOCK_MAPUTO U STOCK_BEIRA U STOCK_NAMPULA */
     @GetMapping("/stock/global")
     public Map<String, Object> stockGlobal() {
-        List<Object> linhas = new ArrayList<>(stockLocal());
+        List<Object> linhas = new ArrayList<>();
         List<String> indisponiveis = new ArrayList<>();
+        try {
+            linhas.addAll(stockLocal());
+        } catch (Exception e) {
+            indisponiveis.add("http://agente-" + regiao.toLowerCase() + ":8080");   // mestre e replica em baixo
+        }
         for (String par : pares) {
             try {
                 List<?> remotas = http.get().uri(par + "/stock").retrieve().body(List.class);

@@ -22,10 +22,12 @@ public class DfsController {
 
     private final HdfsCliente hdfs;
     private final Relogio relogio;
+    private final RegistoDfs registo;
     private final String regiao;
 
-    public DfsController(HdfsCliente hdfs, Relogio relogio, @Value("${scad.regiao}") String regiao) {
+    public DfsController(HdfsCliente hdfs, Relogio relogio, RegistoDfs registo, @Value("${scad.regiao}") String regiao) {
         this.hdfs = hdfs;
+        this.registo = registo;
         this.relogio = relogio;
         this.regiao = regiao;
     }
@@ -51,7 +53,7 @@ public class DfsController {
                 "Emitida em (hora Berkeley): " + relogio.agora(),
                 "Guardada no HDFS com fator de replicacao 3"));
         String caminho = "/scad/faturas/" + ordemId + ".pdf";
-        hdfs.escrever(caminho, pdf);
+        registo.guardarComRepeticao(caminho, pdf);    // com o HDFS em baixo, a fatura espera em fila
         return caminho;
     }
 
@@ -64,6 +66,12 @@ public class DfsController {
         return Map.of("ficheiro", ficheiro, "linha", linha.trim());
     }
 
+    /** Exporta ja os relatorios de auditoria deste no para /scad/auditoria. */
+    @PostMapping("/auditoria/exportar")
+    public Map<String, Object> exportarAuditoria() {
+        return Map.of("regiao", regiao, "escritos", registo.exportarAuditoria());
+    }
+
     @GetMapping("/listar")
     public List<Map<String, Object>> listar(@RequestParam(defaultValue = "/scad/faturas") String dir) {
         return hdfs.listar(dir);
@@ -73,7 +81,7 @@ public class DfsController {
     @GetMapping("/ler")
     public ResponseEntity<byte[]> ler(@RequestParam String caminho) {
         byte[] dados = hdfs.ler(caminho);
-        MediaType tipo = caminho.endsWith(".pdf") ? MediaType.APPLICATION_PDF : MediaType.TEXT_PLAIN;
+        MediaType tipo = caminho.endsWith(".pdf") ? MediaType.APPLICATION_PDF : new MediaType("text", "plain", StandardCharsets.UTF_8);
         return ResponseEntity.ok().contentType(tipo).header("X-Lido-Por", regiao).body(dados);
     }
 }

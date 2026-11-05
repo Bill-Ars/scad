@@ -15,6 +15,7 @@ import org.springframework.web.client.RestClient;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class CoordenadorController {
 
     private static final Logger log = LoggerFactory.getLogger(CoordenadorController.class);
+    private static final String SEM_RESPOSTA = "NAO (sem resposta: participante em falha)";
 
     private final JdbcTemplate jdbc;
     private final String regiao;
@@ -53,14 +55,28 @@ public class CoordenadorController {
         boolean simularFalha = Boolean.TRUE.equals(pedido.get("simularFalhaCoordenador"));
 
         long t = System.currentTimeMillis();
-        String base = "compra-" + t;
         String ordemId = "ORD-" + t;
-        List<String> regioes = new ArrayList<>(quantidades.keySet());
+        Map<String, Map<String, Object>> partes = new LinkedHashMap<>();
+        for (String reg : quantidades.keySet()) {
+            Map<String, Object> parte = new LinkedHashMap<>();
+            parte.put("ordemId", ordemId);
+            parte.put("produtoId", produtoId);
+            parte.put("fornecedorId", fornecedorId);
+            parte.put("quantidade", quantidades.get(reg));
+            partes.put(reg, parte);
+        }
+        Map<String, Object> r = executar2pc("compra-" + t, partes, simularFalha);
+        r.put("ordemId", ordemId);
+        return r;
+    }
+
+    /** Executa o 2PC: cada regiao de "partes" prepara a sua parte e todas confirmam, ou nenhuma. */
+    Map<String, Object> executar2pc(String base, Map<String, Map<String, Object>> partes, boolean simularFalha) {
+        List<String> regioes = new ArrayList<>(partes.keySet());
 
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("coordenador", regiao);
         r.put("transacao", base);
-        r.put("ordemId", ordemId);
         r.put("participantes", regioes);
         registar("2PC-INICIO", base + " participantes=" + String.join(",", regioes));
 
@@ -68,12 +84,8 @@ public class CoordenadorController {
         Map<String, Object> votos = new LinkedHashMap<>();
         boolean todosSim = true;
         for (String reg : regioes) {
-            Map<String, Object> corpo = new LinkedHashMap<>();
+            Map<String, Object> corpo = new LinkedHashMap<>(partes.get(reg));
             corpo.put("gid", base + "-" + reg.toLowerCase());
-            corpo.put("ordemId", ordemId);
-            corpo.put("produtoId", produtoId);
-            corpo.put("fornecedorId", fornecedorId);
-            corpo.put("quantidade", quantidades.get(reg));
             String voto;
             try {
                 Map<?, ?> resp = http.post().uri(urlDe(reg) + "/tx/preparar")
@@ -82,7 +94,7 @@ public class CoordenadorController {
                 voto = String.valueOf(resp.get("voto"));
                 if (!"SIM".equals(voto)) voto = "NAO (" + resp.get("motivo") + ")";
             } catch (Exception e) {
-                voto = "NAO (sem resposta: participante em falha)";
+                voto = SEM_RESPOSTA;
             }
             votos.put(reg, voto);
             if (!"SIM".equals(voto)) todosSim = false;
@@ -112,7 +124,8 @@ public class CoordenadorController {
         String acao = "COMMIT".equals(decisao) ? "confirmar" : "abortar";
         Map<String, Object> res = new LinkedHashMap<>();
         for (String reg : regioes) {
-            if (votos != null && !"SIM".equals(votos.get(reg))) {
+            // Quem nao respondeu pode ter preparado depois do timeout: tambem recebe o ABORT
+            if (votos != null && !"SIM".equals(votos.get(reg)) && !SEM_RESPOSTA.equals(votos.get(reg))) {
                 res.put(reg, "nada a fazer (votou NAO e ja desfez localmente)");
                 continue;
             }
@@ -149,6 +162,18 @@ public class CoordenadorController {
         r.put("decisaoRegistada", decisao);
         r.put("fase2_resultados", fase2(base, decisao, regioes, null));
         return r;
+    }
+
+    /** Atualiza a ordem em cada armazem depois do envio ao fornecedor. Quem nao responder fica CONFIRMADA e a ordem expira. */
+    void marcarOrdem(String ordemId, Collection<String> regioes, String estado) {
+        for (String reg : regioes) {
+            try {
+                http.post().uri(urlDe(reg) + "/tx/ordem/" + ordemId + "/estado?estado=" + estado)
+                        .retrieve().toBodilessEntity();
+            } catch (Exception e) {
+                log.warn("[2PC] ordem {} nao marcada {} em {}: {}", ordemId, estado, reg, e.getMessage());
+            }
+        }
     }
 
     private void registar(String operacao, String detalhe) {

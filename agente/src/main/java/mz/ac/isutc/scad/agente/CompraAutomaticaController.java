@@ -33,11 +33,14 @@ public class CompraAutomaticaController {
     private final FornecedorCliente fornecedores;
     private final DfsController dfs;
     private final Relogio relogio;
+    private final RegistoDfs registo;
     private final String regiao;
 
     public CompraAutomaticaController(JdbcTemplate jdbc, RicartAgrawala ra, StockController stock,
                                       CoordenadorController coordenador, FornecedorCliente fornecedores,
-                                      DfsController dfs, Relogio relogio, @Value("${scad.regiao}") String regiao) {
+                                      DfsController dfs, Relogio relogio, RegistoDfs registo,
+                                      @Value("${scad.regiao}") String regiao) {
+        this.registo = registo;
         this.jdbc = jdbc;
         this.ra = ra;
         this.stock = stock;
@@ -63,8 +66,8 @@ public class CompraAutomaticaController {
         int q = ((Number) linha.get(0).get("quantidade")).intValue();
         int min = ((Number) linha.get(0).get("limite_minimo")).intValue();
         String fornecedorId = (String) linha.get(0).get("fornecedor_id");
-        if (q >= min) { passos.add("1. stock OK (" + q + " >= " + min + "): nada a comprar"); return r; }
-        passos.add("1. stock abaixo do minimo: " + q + " < " + min + " (fornecedor " + fornecedorId + ")");
+        if (q > min) { passos.add("1. stock OK (" + q + " acima do minimo " + min + "): nada a comprar"); return r; }
+        passos.add("1. stock atingiu o minimo: " + q + " <= " + min + " (fornecedor " + fornecedorId + ")");
 
         // 2. Exclusao mutua distribuida sobre o lote
         String recurso = fornecedorId + ":" + produtoId;
@@ -74,16 +77,21 @@ public class CompraAutomaticaController {
                 + (System.currentTimeMillis() - t0) + " ms (ts Lamport " + ra1.get("lamportTs") + ")");
         try {
             // 3. Verificacao dentro da seccao critica
-            List<String> recente = jdbc.queryForList(
-                    "SELECT id FROM ordem_compra WHERE produto_id = ? AND fornecedor_id = ? " +
-                    "AND criada_em > now() - interval '2 minutes' ORDER BY criada_em DESC LIMIT 1",
-                    String.class, produtoId, fornecedorId);
-            if (!recente.isEmpty()) {
-                passos.add("3. lote ja comprado por outro no (" + recente.get(0) + "): NAO duplica");
+            // O stock e relido: enquanto este no esperava, outro pode ter comprado ou a mercadoria pode ter chegado
+            int qAgora = jdbc.queryForObject("SELECT quantidade FROM stock WHERE produto_id = ?", Integer.class, produtoId);
+            List<Map<String, Object>> abertas = jdbc.queryForList(
+                    "SELECT o.id, o.quantidade FROM ordem_compra o WHERE o.produto_id = ? AND o.fornecedor_id = ? " +
+                    "AND " + StockController.ORDEM_ABERTA + " ORDER BY o.criada_em DESC",
+                    produtoId, fornecedorId);
+            int aCaminho = abertas.stream().mapToInt(o -> ((Number) o.get("quantidade")).intValue()).sum();
+            if (qAgora + aCaminho > min) {
+                passos.add(abertas.isEmpty()
+                        ? "3. stock reposto entretanto (" + qAgora + " acima de " + min + "): nada a comprar"
+                        : "3. lote ja comprado por outro no (" + abertas.get(0).get("id") + "): NAO duplica");
                 r.put("resultado", "SEM COMPRA - lote ja encomendado");
                 return r;
             }
-            passos.add("3. nenhuma ordem recente para este lote: este no faz a compra");
+            passos.add("3. stock " + qAgora + " + " + aCaminho + " a caminho <= " + min + ": este no faz a compra");
 
             // 4. Necessidades de todas as regioes (tabela global reconstruida)
             Map<String, Object> quantidades = new LinkedHashMap<>();
@@ -94,10 +102,15 @@ public class CompraAutomaticaController {
                         && Boolean.TRUE.equals(m.get("abaixo_minimo"))) {
                     int qa = ((Number) m.get("quantidade")).intValue();
                     int ma = ((Number) m.get("limite_minimo")).intValue();
-                    quantidades.put((String) m.get("regiao"), 2 * ma - qa);   // repor ate 2x o minimo
+                    int enc = ((Number) m.get("em_encomenda")).intValue();
+                    if (qa + enc <= ma) quantidades.put((String) m.get("regiao"), 2 * ma - qa - enc);   // repor ate 2x o minimo
                 }
             }
             passos.add("4. stock global: regioes a repor = " + quantidades);
+            if (quantidades.isEmpty()) {
+                r.put("resultado", "SEM COMPRA - nenhuma regiao precisa de repor");
+                return r;
+            }
 
             // 5. 2PC entre os armazens envolvidos
             Map<String, Object> pedido = new LinkedHashMap<>();
@@ -118,17 +131,18 @@ public class CompraAutomaticaController {
             Map<String, Object> envio = fornecedores.enviar(ordemId, fornecedorId, produtoId, total);
             passos.add("6. fornecedor via " + envio.get("rota") + ": " + envio.get("estado") + " " + envio.get("tentativas"));
             if (!"ENTREGUE".equals(envio.get("estado"))) {
+                coordenador.marcarOrdem(ordemId, quantidades.keySet(), "FALHOU");   // nao vira mercadoria nem fatura
                 registarErro("ordem " + ordemId + " nao entregue ao fornecedor " + fornecedorId + ": " + envio.get("estado"));
+                r.put("ordemId", ordemId);
+                r.put("resultado", "COMPRA FALHOU - fornecedor sem resposta ou rejeitou");
+                return r;
             }
+            coordenador.marcarOrdem(ordemId, quantidades.keySet(), "ENVIADA");     // a mercadoria vem a caminho
 
             // 7. Fatura no HDFS
-            try {
-                String caminho = dfs.guardarFatura(ordemId, fornecedorId, produtoId, total);
-                passos.add("7. fatura guardada no HDFS: " + caminho);
-                r.put("fatura", caminho);
-            } catch (Exception e) {
-                passos.add("7. HDFS indisponivel: fatura nao guardada (" + e.getClass().getSimpleName() + ")");
-            }
+            String caminho = dfs.guardarFatura(ordemId, fornecedorId, produtoId, total);
+            passos.add("7. fatura enviada para o HDFS: " + caminho);
+            r.put("fatura", caminho);
             r.put("ordemId", ordemId);
             r.put("resultado", "COMPRA CONCLUIDA");
             return r;
@@ -139,10 +153,6 @@ public class CompraAutomaticaController {
     }
 
     private void registarErro(String texto) {
-        try {
-            dfs.log(Map.of("texto", texto));
-        } catch (Exception ignorado) {
-            // HDFS indisponivel: o erro fica apenas na auditoria local
-        }
+        registo.erro(texto);
     }
 }

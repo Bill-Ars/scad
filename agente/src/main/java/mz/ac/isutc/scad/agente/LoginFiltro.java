@@ -9,13 +9,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * Exige login apenas no painel web. As restantes rotas (/tx, /ra, /relogio, /estado, /stock...) ficam
- * abertas porque os nos chamam-nas entre si sem sessao; o mesmo vale para /painel/ordens.
+ * abertas porque os nos chamam-nas entre si sem sessao; o mesmo vale para ROTAS_ENTRE_NOS.
  */
 @Component
 public class LoginFiltro extends OncePerRequestFilter {
+
+    private static final Set<String> ROTAS_ENTRE_NOS = Set.of("/painel/ordens", "/painel/auditoria", "/painel/movimentos");
 
     @Override
     protected void doFilterInternal(HttpServletRequest pedido, HttpServletResponse resposta, FilterChain cadeia)
@@ -23,7 +26,7 @@ public class LoginFiltro extends OncePerRequestFilter {
         // getServletPath (e nao getRequestURI) para ignorar parametros como /painel;x=1/resumo
         String caminho = pedido.getServletPath();
         boolean pagina = caminho.equals("/") || caminho.equals("/index.html");
-        boolean api = caminho.startsWith("/painel/") && !caminho.equals("/painel/ordens");
+        boolean api = caminho.startsWith("/painel/") && !ROTAS_ENTRE_NOS.contains(caminho);
 
         // Sem isto, o navegador pode mostrar o painel guardado em cache sem passar pelo login
         if (pagina) resposta.setHeader("Cache-Control", "no-store");

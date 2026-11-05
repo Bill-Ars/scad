@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="pt" data-tema="escuro">
+<html lang="pt" data-tema="claro">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SCAD · Entrar</title>
-<script>try { document.documentElement.setAttribute('data-tema', localStorage.getItem('scad-tema') || 'escuro'); } catch (e) {}</script>
+<link rel="icon" href="data:,">
+<script>try { document.documentElement.setAttribute('data-tema', localStorage.getItem('scad-tema') || 'claro'); } catch (e) {}</script>
 <style>
   :root, [data-tema="escuro"]{ --bg:#0b1014; --card:#131c22; --line:#22303a; --ink:#e6edf1; --muted:#8a9aa5; --accent:#2ee59d; --glow:rgba(46,229,157,.18); --bad:#ff6b6b; --btn-ink:#06281a; }
   [data-tema="oceano"]{ --bg:#071226; --card:#0d1f3d; --line:#1c3463; --ink:#e4ecfa; --muted:#8ea3c7; --accent:#38bdf8; --glow:rgba(56,189,248,.20); --bad:#fb7185; --btn-ink:#04223a; }
@@ -25,7 +26,7 @@
 <body>
 <form method="post" action="/login">
   <h1>SCAD</h1>
-  <p>Painel de Controlo</p>
+  <p>Gestão de Stock e Compras</p>
   <label>Senha<input type="password" name="senha" autocomplete="current-password" required autofocus></label>
   <p id="erro" role="alert" hidden>Senha incorreta.</p>
   <button type="submit">Entrar</button>

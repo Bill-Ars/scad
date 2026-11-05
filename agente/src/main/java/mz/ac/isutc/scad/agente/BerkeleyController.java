@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Algoritmo de Berkeley.
@@ -30,17 +32,21 @@ public class BerkeleyController {
     private static final Logger log = LoggerFactory.getLogger(BerkeleyController.class);
     private static final long LIMITE_OUTLIER_MS = 10 * 60 * 1000;     // diferencas > 10 min sao ignoradas
 
+    private static final long DIFERENCA_RELEVANTE_MS = 1000;          // abaixo disto, a ronda nao vai para a auditoria
+
     private final Relogio relogio;
+    private final MotorCompras motor;
     private final String regiao;
     private final boolean mestre;
     private final List<String> pares;
     private final RestClient http;
 
-    public BerkeleyController(Relogio relogio,
+    public BerkeleyController(Relogio relogio, MotorCompras motor,
                               @Value("${scad.regiao}") String regiao,
                               @Value("${scad.berkeley-mestre:false}") boolean mestre,
                               @Value("${scad.pares}") String pares) {
         this.relogio = relogio;
+        this.motor = motor;
         this.regiao = regiao;
         this.mestre = mestre;
         this.pares = Arrays.stream(pares.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
@@ -76,6 +82,17 @@ public class BerkeleyController {
     public Map<String, Object> desacertar() {
         relogio.repor();
         return hora();
+    }
+
+    /** Rondas periodicas: mantem as horas das transacoes e auditorias coordenadas sem intervencao. */
+    @Scheduled(initialDelay = 15, fixedDelayString = "${scad.berkeley-s}", timeUnit = TimeUnit.SECONDS)
+    public void rondaAutomatica() {
+        if (!mestre) return;
+        Map<String, Object> r = sincronizar();
+        @SuppressWarnings("unchecked")
+        Map<String, Long> diferencas = (Map<String, Long>) r.get("diferencasMs");
+        boolean corrigiu = diferencas.values().stream().anyMatch(d -> Math.abs(d) > DIFERENCA_RELEVANTE_MS);
+        if (corrigiu) motor.auditar("BERKELEY", "diferencas " + diferencas + " -> ajustes " + r.get("ajustesMs"));
     }
 
     /** Mestre: executa uma ronda do algoritmo de Berkeley. */
