@@ -65,6 +65,39 @@
   .pedido .cab{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:8px}
   .pedido ul{margin:0;padding-left:20px}
   .etiqueta{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--card2);border:1px solid var(--line)}
+  [hidden]{display:none!important}
+  .preco{font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+  .preco small{font-weight:400;color:var(--muted);font-size:12.5px}
+  .total{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0 14px;font-weight:700}
+  .total b{font-size:22px;font-variant-numeric:tabular-nums}
+  ul.carrinho .sub{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;margin-left:auto;margin-right:6px}
+  dialog{border:0;border-radius:20px;background:var(--card);color:var(--ink);padding:0;width:min(480px,calc(100vw - 24px));box-shadow:0 30px 80px -30px rgba(0,0,0,.55)}
+  dialog::backdrop{background:rgba(8,12,24,.55);backdrop-filter:blur(3px)}
+  dialog[open]{animation:abre .25s both}
+  @keyframes abre{from{opacity:0;transform:translateY(10px) scale(.97)}}
+  .dcab{padding:20px 22px;background:linear-gradient(135deg,var(--accent),#0e7490);color:#fff}
+  .dcab small{opacity:.85} .dcab .v{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
+  .dcorpo{padding:20px 22px}
+  .metodos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 14px}
+  .metodos label{display:flex;gap:10px;align-items:center;border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;font-weight:600;transition:border-color .2s,background .2s}
+  .metodos input{position:absolute;opacity:0;pointer-events:none}
+  .metodos label:has(input:checked){border-color:var(--accent);background:var(--accent-bg)}
+  .metodos label:has(input:focus-visible){outline:2px solid var(--azul);outline-offset:2px}
+  .logo-m{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800;flex:none}
+  .campo{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:12px}
+  .campo input{border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+  .nota{font-size:12.5px;color:var(--muted);background:var(--card2);border-radius:10px;padding:9px 11px;margin:0 0 14px}
+  .dfim{display:flex;gap:8px;justify-content:flex-end}
+  .processar{display:grid;place-items:center;gap:12px;padding:30px 0;text-align:center}
+  .roda{width:46px;height:46px;border-radius:50%;border:4px solid var(--accent-bg);border-top-color:var(--accent);animation:gira .8s linear infinite}
+  @keyframes gira{to{transform:rotate(360deg)}}
+  .certo{width:62px;height:62px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;margin:4px auto 10px;animation:salta .45s cubic-bezier(.3,1.6,.5,1) both}
+  .certo .ic{width:32px;height:32px}
+  @keyframes salta{from{transform:scale(.3);opacity:0}}
+  .recibo{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;font-size:14px}
+  .recibo div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+  .recibo .t{border-top:1px dashed var(--line);margin-top:6px;padding-top:8px;font-weight:700}
+  @media print{ body>*:not(dialog){display:none!important} dialog{position:static;box-shadow:none} .dfim{display:none} }
   @media (max-width:880px){ .grelhaPedido{grid-template-columns:1fr} aside{position:static} header,.cont,.abas{padding-left:16px;padding-right:16px} }
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
@@ -83,6 +116,35 @@
   <button data-v="historico" role="tab"><svg class="ic"><use href="/icones.svg#recibo"/></svg>Os meus pedidos</button>
 </nav>
 
+<dialog id="dPagar" aria-labelledby="pTit">
+  <form id="fPagar" method="dialog">
+    <div class="dcab"><small id="pTit">Pagamento · armazém de <span id="pArm"></span></small><div class="v" id="pTotal"></div></div>
+    <div class="dcorpo">
+      <div id="passo-escolher">
+        <b>Forma de pagamento</b>
+        <div class="metodos">
+          <label><input type="radio" name="metodo" value="MPESA" checked><span class="logo-m" style="background:#e11d48">M</span>M-Pesa</label>
+          <label><input type="radio" name="metodo" value="EMOLA"><span class="logo-m" style="background:#ea580c">e</span>e-Mola</label>
+          <label><input type="radio" name="metodo" value="CARTAO"><span class="logo-m" style="background:#1d4ed8"><svg class="ic"><use href="/icones.svg#recibo"/></svg></span>Cartão</label>
+          <label><input type="radio" name="metodo" value="TRANSFERENCIA"><span class="logo-m" style="background:#0f766e"><svg class="ic"><use href="/icones.svg#edificio"/></svg></span>Transferência</label>
+        </div>
+        <label class="campo" id="cTel">Número de telemóvel<input id="pTel" inputmode="tel" placeholder="84 123 4567" maxlength="12" required></label>
+        <p class="nota">Pagamento simulado para demonstração: não é cobrado dinheiro nem são pedidos dados de cartão.</p>
+        <div class="msg mau" id="pErro" hidden></div>
+        <div class="dfim"><button type="button" class="b" data-fechar>Cancelar</button><button class="b prim"><svg class="ic"><use href="/icones.svg#cadeado"/></svg>Pagar</button></div>
+      </div>
+      <div id="passo-processar" class="processar" hidden><div class="roda"></div><b id="pAviso"></b><span class="sec">Não feche esta janela.</span></div>
+      <div id="passo-pronto" hidden>
+        <div class="certo"><svg class="ic"><use href="/icones.svg#certo"/></svg></div>
+        <h2 style="justify-content:center;margin-bottom:4px">Pagamento confirmado</h2>
+        <p class="sec" style="text-align:center;margin:0 0 14px">O armazém vai preparar o seu pedido.</p>
+        <div class="recibo" id="rRecibo"></div>
+        <div class="dfim" style="margin-top:14px"><button type="button" class="b" id="bImprimir"><svg class="ic"><use href="/icones.svg#ficheiro"/></svg>Imprimir recibo</button><button type="button" class="b prim" data-fechar>Concluir</button></div>
+      </div>
+    </div>
+  </form>
+</dialog>
+
 <div class="cont">
   <section class="vista on" id="v-pedir">
     <div class="grelhaPedido">
@@ -96,7 +158,8 @@
         <h2 id="t-pedido"><svg class="ic"><use href="/icones.svg#carrinho"/></svg>O seu pedido <span class="contador" id="contador">0</span></h2>
         <p class="sec" id="armazemPedido" style="margin:-6px 0 10px"></p>
         <ul class="carrinho" id="carrinho"></ul>
-        <button class="b prim" id="bPedir" style="width:100%;justify-content:center"><svg class="ic"><use href="/icones.svg#certo"/></svg>Confirmar pedido</button>
+        <div class="total"><span>Total</span><b id="total">0,00 MZN</b></div>
+        <button class="b prim" id="bPedir" style="width:100%;justify-content:center"><svg class="ic"><use href="/icones.svg#cadeado"/></svg>Continuar para pagamento</button>
         <div id="msg" role="status" aria-live="polite"></div>
       </aside>
     </div>
@@ -114,6 +177,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ic = n => `<svg class="ic"><use href="/icones.svg#${n}"/></svg>`;
 const REG = ['Maputo', 'Beira', 'Nampula'];
+const mzn = v => Number(v || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MZN';
 const dataHora = t => new Date(String(t).replace(' ', 'T') + 'Z').toLocaleString('pt-PT');
 let regiao = 'Maputo', produtos = [], carrinho = {};
 try { if (REG.includes(localStorage.getItem('scad-loja'))) regiao = localStorage.getItem('scad-loja'); } catch (e) {}
@@ -168,7 +232,7 @@ function desenharProdutos() {
   $('produtos').innerHTML = produtos.map((p, k) => {
     const livre = livreDe(p);
     const disp = livre <= 0 ? '<span class="disp zero">Esgotado de momento</span>' : `<span class="disp ${livre < 20 ? 'poucos' : 'ok'}">${livre} disponíveis</span>`;
-    return `<div class="prod" style="animation-delay:${k * 40}ms"><div class="topo"><span class="icone">${ic('caixa')}</span><div><h3>${esc(p.nome)}</h3><span class="sec">por ${esc(p.unidade)}</span></div></div>${disp}
+    return `<div class="prod" style="animation-delay:${k * 40}ms"><div class="topo"><span class="icone">${ic('caixa')}</span><div><h3>${esc(p.nome)}</h3><span class="preco">${mzn(p.preco)} <small>/ ${esc(p.unidade)}</small></span></div></div>${disp}
       <div class="linha"><span class="qtd"><button data-menos="${esc(p.id)}" aria-label="Menos">−</button><input type="number" min="1" value="${esc(valores[p.id] || 1)}" data-q="${esc(p.id)}" aria-label="Quantidade de ${esc(p.nome)}" ${livre > 0 ? '' : 'disabled'}><button data-mais="${esc(p.id)}" aria-label="Mais">+</button></span>
       <button class="b prim" data-add="${esc(p.id)}" ${livre > 0 ? '' : 'disabled'}>${ic('mais')}Juntar</button></div></div>`;
   }).join('');
@@ -185,31 +249,62 @@ $('produtos').onclick = e => {
   carrinho[id] = (carrinho[id] || 0) + q; campo.value = 1;
   mensagem(''); desenharCarrinho(true); desenharProdutos();
 };
+function totalCarrinho() {
+  return Object.keys(carrinho).reduce((s, id) => { const p = produtos.find(x => x.id === id); return s + carrinho[id] * Number(p ? p.preco : 0); }, 0);
+}
 function desenharCarrinho(pulsar) {
   const ids = Object.keys(carrinho);
   $('carrinho').innerHTML = ids.length ? ids.map(id => {
     const p = produtos.find(x => x.id === id) || { nome: id, unidade: '' };
-    return `<li><span><b>${carrinho[id]}</b> × ${esc(p.nome)}</span><button class="rm" data-rm="${esc(id)}" aria-label="Retirar ${esc(p.nome)}">${ic('lixo')}</button></li>`;
+    return `<li><span><b>${carrinho[id]}</b> × ${esc(p.nome)}</span><span class="sub">${mzn(carrinho[id] * Number(p.preco || 0))}</span><button class="rm" data-rm="${esc(id)}" aria-label="Retirar ${esc(p.nome)}">${ic('lixo')}</button></li>`;
   }).join('') : '<li class="vazio" style="border:0;display:block">Ainda não juntou produtos.</li>';
+  $('total').textContent = mzn(totalCarrinho());
   const n = ids.reduce((s, id) => s + carrinho[id], 0);
   $('contador').textContent = n;
   if (pulsar) { $('contador').classList.remove('pulsa'); void $('contador').offsetWidth; $('contador').classList.add('pulsa'); }
   $('bPedir').disabled = !ids.length;
 }
 $('carrinho').onclick = e => { const b = e.target.closest('[data-rm]'); if (!b) return; delete carrinho[b.dataset.rm]; desenharCarrinho(); desenharProdutos(); };
-$('bPedir').onclick = async () => {
+$('bPedir').onclick = () => {
+  if (!Object.keys(carrinho).length) return;
+  $('pTotal').textContent = mzn(totalCarrinho());
+  $('pArm').textContent = regiao;
+  $('pErro').hidden = true;
+  mostrarPasso('escolher');
+  $('dPagar').showModal();
+};
+function mostrarPasso(p) { ['escolher', 'processar', 'pronto'].forEach(x => $('passo-' + x).hidden = x !== p); }
+function metodoAtual() { return document.querySelector('input[name=metodo]:checked').value; }
+document.querySelectorAll('input[name=metodo]').forEach(r => r.onchange = () => {
+  const movel = ['MPESA', 'EMOLA'].includes(metodoAtual());
+  $('cTel').hidden = !movel; $('pTel').required = movel;
+});
+$('fPagar').onsubmit = async e => {
+  e.preventDefault();
   const itens = Object.entries(carrinho).map(([produtoId, quantidade]) => ({ produtoId, quantidade }));
-  if (!itens.length) return;
-  $('bPedir').disabled = true;
+  const pagamento = { metodo: metodoAtual(), telemovel: $('pTel').value };
+  mostrarPasso('processar');
+  $('pAviso').textContent = ['MPESA', 'EMOLA'].includes(pagamento.metodo) ? 'A aguardar a confirmação no telemóvel...' : 'A processar o pagamento...';
+  const espera = new Promise(r => setTimeout(r, 1400));       // so para se ver o passo; o pagamento e simulado
   try {
-    const j = await api('/loja/pedido?regiao=' + encodeURIComponent(regiao), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itens }) });
-    mensagem(`${ic('certo')} <b>Pedido ${esc(j.pedido)} confirmado.</b><br>O armazém de ${esc(j.regiao)} vai preparar:<br>` +
-      j.itens.map(i => `${i.quantidade} × ${esc(i.nome)}`).join('<br>'), true);
+    const [j] = await Promise.all([api('/loja/pedido?regiao=' + encodeURIComponent(regiao), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itens, pagamento }) }), espera]);
+    $('rRecibo').innerHTML = `<div><span>Pedido</span><b>${esc(j.pedido)}</b></div><div><span>Armazém</span><span>${esc(j.regiao)}</span></div>
+      <div><span>Pagamento</span><span>${esc(j.pagamento.metodo)}${j.pagamento.conta ? ' · ' + esc(j.pagamento.conta) : ''}</span></div>
+      <div><span>Referência</span><span class="mono">${esc(j.pagamento.referencia)}</span></div>` +
+      j.itens.map(i => `<div><span>${i.quantidade} × ${esc(i.nome)}</span><span>${mzn(i.quantidade * i.preco)}</span></div>`).join('') +
+      `<div class="t"><span>Total pago</span><span>${mzn(j.total)}</span></div>`;
+    mostrarPasso('pronto');
     carrinho = {};
-  } catch (err) { mensagem(`${ic('alerta')} ${esc(err.message)}`, false); }
+  } catch (err) {
+    await espera;
+    mostrarPasso('escolher');
+    $('pErro').textContent = err.message; $('pErro').hidden = false;
+  }
   desenharCarrinho(); carregar();
 };
+$('bImprimir').onclick = () => window.print();
+document.querySelectorAll('[data-fechar]').forEach(b => b.onclick = () => $('dPagar').close());
 
 /* ---------- Historico ---------- */
 async function carregarHistorico() {
@@ -220,7 +315,8 @@ async function carregarHistorico() {
     const aviso = r.semResposta.length ? `<p class="msg mau">${ic('alerta')} Os pedidos de ${esc(r.semResposta.join(', '))} não estão disponíveis agora.</p>` : '';
     $('historico').innerHTML = aviso + ([...pedidos.values()].map((p, k) => `<div class="pedido" style="animation-delay:${k * 40}ms">
       <div class="cab"><b>${ic('recibo')} ${esc(p.pedido)}</b><span class="etiqueta">${ic('loja')} ${esc(p.regiao)}</span><span class="sec">${esc(dataHora(p.criado))}</span></div>
-      <ul>${p.itens.map(i => `<li>${i.quantidade} × ${esc(i.produto)} <span class="sec">(${esc(i.unidade)})</span></li>`).join('')}</ul></div>`).join('')
+      <ul>${p.itens.map(i => `<li>${i.quantidade} × ${esc(i.produto)} <span class="sec">· ${mzn(i.subtotal)}</span></li>`).join('')}</ul>
+      <div class="cab" style="margin:10px 0 0"><span class="sec">${p.metodo ? `${ic('cadeado')} Pago com ${esc({ MPESA: 'M-Pesa', EMOLA: 'e-Mola', CARTAO: 'Cartão', TRANSFERENCIA: 'Transferência' }[p.metodo] || p.metodo)} · ${esc(p.referencia)}` : ''}</span><b>${p.total != null ? mzn(p.total) : ''}</b></div></div>`).join('')
       || '<p class="vazio">Ainda não fez pedidos.</p>');
   } catch (e) { $('historico').innerHTML = `<p class="vazio">${esc(e.message)}</p>`; }
 }

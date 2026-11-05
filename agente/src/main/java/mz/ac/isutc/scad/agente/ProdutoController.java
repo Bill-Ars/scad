@@ -85,6 +85,8 @@ public class ProdutoController {
     private String validar(Map<String, Object> p, boolean novo) {
         if (texto(p, "nome").isEmpty() || texto(p, "nome").length() > 80) return "o nome e obrigatorio (ate 80 caracteres)";
         if (texto(p, "unidade").isEmpty() || texto(p, "unidade").length() > 20) return "a unidade e obrigatoria (ate 20 caracteres)";
+        if (!(p.get("preco") instanceof Number preco) || preco.doubleValue() < 0 || preco.doubleValue() > 10_000_000) return "o preco tem de estar entre 0 e 10 000 000 MZN";
+        p.put("preco", java.math.BigDecimal.valueOf(preco.doubleValue()).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
         Integer fornecedor = jdbc.queryForObject("SELECT count(*) FROM fornecedor WHERE id = ?", Integer.class, texto(p, "fornecedorId"));
         if (fornecedor == null || fornecedor == 0) return "fornecedor invalido";
         if (!(p.get("regioes") instanceof Map)) return "faltam os dados dos armazens";

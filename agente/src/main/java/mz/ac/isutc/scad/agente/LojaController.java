@@ -34,6 +34,10 @@ public class LojaController {
     private static final List<String> REGIOES = List.of("Maputo", "Beira", "Nampula");
     private static final int MAX_ITENS = 20;
     private static final int MAX_POR_ITEM = 1000;
+    /** Pagamento simulado: nao liga a nenhum operador nem guarda dados de cartao. */
+    private static final Map<String, String> METODOS = Map.of(
+            "MPESA", "M-Pesa", "EMOLA", "e-Mola", "CARTAO", "Cartão", "TRANSFERENCIA", "Transferência bancária");
+    private static final java.util.regex.Pattern TELEMOVEL = java.util.regex.Pattern.compile("^8[2-7]\\d{7}$");
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transacao;
@@ -78,8 +82,17 @@ public class LojaController {
         Map<String, Object> cliente = ContaController.clienteDaSessao(req);
         if (cliente == null) return erro(HttpStatus.UNAUTHORIZED, "Entre na sua conta para fazer pedidos.");
         if (!REGIOES.contains(regiao)) return erro(HttpStatus.BAD_REQUEST, "armazem invalido");
+        Map<?, ?> pag = pedido.get("pagamento") instanceof Map<?, ?> m ? m : Map.of();
+        String metodo = String.valueOf(pag.get("metodo"));
+        if (!METODOS.containsKey(metodo)) return erro(HttpStatus.BAD_REQUEST, "Escolha a forma de pagamento.");
+        String telemovel = String.valueOf(pag.get("telemovel")).replaceAll("\\s", "");
+        boolean movel = metodo.equals("MPESA") || metodo.equals("EMOLA");
+        if (movel && !TELEMOVEL.matcher(telemovel).matches()) return erro(HttpStatus.BAD_REQUEST, "Indique um número de telemóvel válido (ex.: 84 123 4567).");
         Map<String, Object> corpo = new LinkedHashMap<>();
         corpo.put("itens", pedido.get("itens"));
+        corpo.put("metodo", metodo);
+        // so os ultimos digitos ficam guardados
+        corpo.put("conta", movel ? telemovel.substring(0, 2) + "*****" + telemovel.substring(7) : null);
         corpo.put("clienteId", cliente.get("id"));
         corpo.put("cliente", cliente.get("nome") + " (" + cliente.get("tipo") + ")");
         try {
@@ -125,15 +138,18 @@ public class LojaController {
     public List<Map<String, Object>> pedidosLocais(@RequestParam(defaultValue = "") String cliente) {
         return jdbc.queryForList(
                 "SELECT pc.pedido, pc.regiao, pc.cliente_id, c.nome AS cliente, c.tipo, pc.produto_id, p.nome AS produto, p.unidade, " +
-                "pc.quantidade, to_char(pc.criado_em AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS criado " +
+                "pc.quantidade, pc.preco_unitario, pc.quantidade * pc.preco_unitario AS subtotal, " +
+                "pg.metodo, pg.conta, pg.referencia, pg.valor AS total, pg.estado AS pagamento, " +
+                "to_char(pc.criado_em AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS criado " +
                 "FROM pedido_cliente pc JOIN cliente c ON c.id = pc.cliente_id JOIN produto p ON p.id = pc.produto_id " +
+                "LEFT JOIN pagamento pg ON pg.pedido = pc.pedido " +
                 "WHERE (? = '' OR pc.cliente_id = ?) ORDER BY pc.id DESC LIMIT 300", cliente, cliente);
     }
 
     @GetMapping("/local/resumo-clientes")
     public List<Map<String, Object>> resumoLocal() {
         return jdbc.queryForList(
-                "SELECT cliente_id, count(DISTINCT pedido) AS pedidos, sum(quantidade) AS unidades, " +
+                "SELECT cliente_id, count(DISTINCT pedido) AS pedidos, sum(quantidade) AS unidades, sum(quantidade * preco_unitario) AS valor, " +
                 "to_char(max(criado_em) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS ultimo " +
                 "FROM pedido_cliente GROUP BY cliente_id");
     }
@@ -141,7 +157,7 @@ public class LojaController {
     @GetMapping("/local/catalogo")
     public List<Map<String, Object>> catalogoLocal() {
         return jdbc.queryForList(
-                "SELECT s.produto_id AS id, p.nome, p.unidade, s.quantidade AS disponivel " +
+                "SELECT s.produto_id AS id, p.nome, p.unidade, p.preco, s.quantidade AS disponivel " +
                 "FROM stock s JOIN produto p ON p.id = s.produto_id ORDER BY p.nome");
     }
 
@@ -151,6 +167,9 @@ public class LojaController {
         String cliente = pedido.get("cliente") instanceof String s ? s.trim().replaceAll("[|\\r\\n]", " ") : "";
         String clienteId = pedido.get("clienteId") instanceof String c ? c : "";
         if (cliente.isEmpty() || cliente.length() > 90 || clienteId.isEmpty()) return erro(HttpStatus.BAD_REQUEST, "Entre na sua conta para fazer pedidos.");
+        String metodo = pedido.get("metodo") instanceof String m && METODOS.containsKey(m) ? m : null;
+        if (metodo == null) return erro(HttpStatus.BAD_REQUEST, "Escolha a forma de pagamento.");
+        String conta = pedido.get("conta") instanceof String c2 ? c2 : null;
         Map<String, Integer> itens = new LinkedHashMap<>();
         if (!(pedido.get("itens") instanceof List<?> lista) || lista.isEmpty() || lista.size() > MAX_ITENS) {
             return erro(HttpStatus.BAD_REQUEST, "O pedido tem de ter entre 1 e " + MAX_ITENS + " produtos.");
@@ -166,28 +185,36 @@ public class LojaController {
         String numero = "PED-" + System.currentTimeMillis() + "-" + regiao.substring(0, 3).toUpperCase();
         List<Map<String, Object>> linhas = new ArrayList<>();
         List<String> aRepor = new ArrayList<>();
+        java.math.BigDecimal[] total = { java.math.BigDecimal.ZERO };
+        String referencia = "PAG-" + Long.toString(System.nanoTime(), 36).toUpperCase();
         try {
             transacao.executeWithoutResult(estado -> {
                 for (Map.Entry<String, Integer> item : itens.entrySet()) {
                     List<Map<String, Object>> r = jdbc.queryForList(
                             "UPDATE stock s SET quantidade = s.quantidade - ? FROM produto p " +
                             "WHERE s.produto_id = ? AND p.id = s.produto_id AND s.quantidade >= ? " +
-                            "RETURNING p.nome, s.quantidade, s.limite_minimo", item.getValue(), item.getKey(), item.getValue());
+                            "RETURNING p.nome, p.preco, s.quantidade, s.limite_minimo", item.getValue(), item.getKey(), item.getValue());
                     if (r.isEmpty()) throw new PedidoRecusado(motivo(item.getKey(), item.getValue()));
                     int fica = ((Number) r.get(0).get("quantidade")).intValue();
                     int minimo = ((Number) r.get(0).get("limite_minimo")).intValue();
                     jdbc.update("INSERT INTO auditoria (no_origem, hora, operacao, detalhe) VALUES (?, ?, 'VENDA', ?)",
                             "agente-" + regiao.toLowerCase(), java.sql.Timestamp.from(relogio.agora()),
                             item.getKey() + " -" + item.getValue() + " -> " + fica + " (minimo " + minimo + ") | pedido " + numero + " de " + cliente);
-                    jdbc.update("INSERT INTO pedido_cliente (pedido, cliente_id, regiao, produto_id, quantidade, criado_em) VALUES (?, ?, ?, ?, ?, ?)",
-                            numero, clienteId, regiao, item.getKey(), item.getValue(), java.sql.Timestamp.from(relogio.agora()));
+                    // O preco vem da base de dados, nunca do navegador
+                    java.math.BigDecimal preco = (java.math.BigDecimal) r.get(0).get("preco");
+                    total[0] = total[0].add(preco.multiply(java.math.BigDecimal.valueOf(item.getValue())));
+                    jdbc.update("INSERT INTO pedido_cliente (pedido, cliente_id, regiao, produto_id, quantidade, preco_unitario, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            numero, clienteId, regiao, item.getKey(), item.getValue(), preco, java.sql.Timestamp.from(relogio.agora()));
                     if (fica <= minimo) aRepor.add(item.getKey());
                     Map<String, Object> l = new LinkedHashMap<>();
                     l.put("produtoId", item.getKey());
                     l.put("nome", r.get(0).get("nome"));
                     l.put("quantidade", item.getValue());
+                    l.put("preco", r.get(0).get("preco"));
                     linhas.add(l);
                 }
+                jdbc.update("INSERT INTO pagamento (pedido, cliente_id, regiao, metodo, conta, referencia, valor, estado, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 'PAGO', ?)",
+                        numero, clienteId, regiao, metodo, conta, referencia, total[0], java.sql.Timestamp.from(relogio.agora()));
             });
         } catch (PedidoRecusado e) {
             return erro(HttpStatus.CONFLICT, e.getMessage());
@@ -201,6 +228,8 @@ public class LojaController {
         r.put("regiao", regiao);
         r.put("cliente", cliente);
         r.put("itens", linhas);
+        r.put("total", total[0]);
+        r.put("pagamento", Map.of("metodo", METODOS.get(metodo), "referencia", referencia, "estado", "PAGO", "conta", conta == null ? "" : conta));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json(r));
     }
 

@@ -107,14 +107,15 @@ public class ParticipanteController {
                     "INSERT INTO ordem_compra (id, produto_id, fornecedor_id, regiao, quantidade, estado) VALUES (?, ?, ?, ?, ?, 'CONFIRMADA')",
                     p.get("ordemId") + "-" + regiao.toUpperCase(), p.get("produtoId"), p.get("fornecedorId"), regiao, p.get("quantidade"));
             case "PRODUTO_CRIAR" -> {
-                escrever(c, "INSERT INTO produto (id, nome, unidade) VALUES (?, ?, ?)",
-                        p.get("id"), texto(p, "nome"), texto(p, "unidade"));
+                escrever(c, "INSERT INTO produto (id, nome, unidade, preco) VALUES (?, ?, ?, ?)",
+                        p.get("id"), texto(p, "nome"), texto(p, "unidade"), new java.math.BigDecimal(texto(p, "preco")));
                 escrever(c, "INSERT INTO stock (produto_id, regiao, quantidade, limite_minimo, fornecedor_id) VALUES (?, ?, ?, ?, ?)",
                         p.get("id"), regiao, p.get("quantidade"), p.get("limiteMinimo"), p.get("fornecedorId"));
             }
             case "PRODUTO_EDITAR" -> {
                 exigirSemEncomendaSeMudarFornecedor(c, p);
-                escrever(c, "UPDATE produto SET nome = ?, unidade = ? WHERE id = ?", texto(p, "nome"), texto(p, "unidade"), p.get("id"));
+                escrever(c, "UPDATE produto SET nome = ?, unidade = ?, preco = ? WHERE id = ?", texto(p, "nome"), texto(p, "unidade"),
+                        new java.math.BigDecimal(texto(p, "preco")), p.get("id"));
                 if (escrever(c, "UPDATE stock SET limite_minimo = ?, fornecedor_id = ? WHERE produto_id = ?",
                         p.get("limiteMinimo"), p.get("fornecedorId"), p.get("id")) == 0) {
                     throw new SQLException("produto inexistente em " + regiao);

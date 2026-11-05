@@ -6,161 +6,200 @@
 <title>SCAD · Gestão de Stock e Compras</title>
 <link rel="icon" href="data:,">
 <style>
-  /* ---------- Temas ---------- */
+  /* ================= Temas ================= */
   :root, [data-tema="claro"]{
-    --bg:#f1f4f8; --lateral:#ffffff; --card:#ffffff; --card2:#f6f8fb; --line:#dfe5ec; --ink:#16212c; --muted:#5a6876;
-    --accent:#2f5fd0; --accent-ink:#ffffff; --accent-bg:#e8eefb;
-    --c1:#2f5fd0; --c2:#0b8f8f; --c3:#a0522d;
-    --ok:#12703f; --ok-bg:#e1f5e9; --bad:#c62828; --bad-bg:#fde7e7; --warn:#8f5a00; --warn-bg:#fdf1d9;
+    --bg:#f3f5fa; --card:#ffffff; --card2:#f6f8fc; --line:#e4e8f1; --ink:#111827; --muted:#5f6b7d;
+    --accent:#4f46e5; --accent2:#7c3aed; --accent-ink:#ffffff; --accent-bg:#eef0ff;
+    --c1:#4f46e5; --c2:#0d9488; --c3:#ea7a2e;
+    --ok:#0f7a4a; --ok-bg:#e3f7ec; --bad:#d12f4d; --bad-bg:#fde8ec; --warn:#a15c00; --warn-bg:#fff2d8;
+    --lat:#0c1222; --lat2:#141c33; --lat-ink:#e7ebf5; --lat-muted:#8f9ab3; --lat-hover:rgba(255,255,255,.06);
+    --sombra:0 1px 2px rgba(17,24,39,.04),0 8px 24px -12px rgba(17,24,39,.12);
     color-scheme:light;
   }
   [data-tema="escuro"]{
-    --bg:#0e1419; --lateral:#141c23; --card:#18222a; --card2:#1e2a33; --line:#2b3944; --ink:#e8eef2; --muted:#9aa9b4;
-    --accent:#6f9bff; --accent-ink:#0b1730; --accent-bg:#1f2d4a;
-    --c1:#6f9bff; --c2:#3cc9c0; --c3:#e0a06f;
-    --ok:#5bd593; --ok-bg:#16352a; --bad:#ff8a80; --bad-bg:#3d1f1f; --warn:#f2c14e; --warn-bg:#3a2f14;
+    --bg:#0a0f1c; --card:#121a2c; --card2:#172036; --line:#232e47; --ink:#e8ecf6; --muted:#97a3bb;
+    --accent:#818cf8; --accent2:#a78bfa; --accent-ink:#0b1030; --accent-bg:#1d2447;
+    --c1:#818cf8; --c2:#2dd4bf; --c3:#fb923c;
+    --ok:#4ade80; --ok-bg:#12321f; --bad:#fb7185; --bad-bg:#3a1622; --warn:#fbbf24; --warn-bg:#3a2c0e;
+    --lat:#070b16; --lat2:#0e1426; --lat-ink:#e7ebf5; --lat-muted:#8f9ab3; --lat-hover:rgba(255,255,255,.06);
+    --sombra:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
     color-scheme:dark;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif}
+  body{margin:0;color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;
+       background:radial-gradient(900px 420px at 85% -10%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 70%),var(--bg)}
   a{color:var(--accent)}
   code,.mono{font-family:Consolas,"Cascadia Mono",monospace;font-size:.92em}
+  .ic{width:18px;height:18px;flex:none;vertical-align:-3px}
 
-  /* ---------- Estrutura ---------- */
-  .app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
-  aside{background:var(--lateral);border-right:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh}
-  .logo{padding:0 10px;font-weight:700;font-size:20px}
-  .logo small{display:block;font-weight:400;font-size:12px;color:var(--muted);line-height:1.3}
+  /* ================= Barra lateral ================= */
+  .app{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}
+  aside{background:linear-gradient(180deg,var(--lat) 0%,var(--lat2) 100%);color:var(--lat-ink);padding:22px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .logo{padding:0 8px;font-weight:800;font-size:21px;letter-spacing:.02em;display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:center}
+  .logo::before{content:"";grid-row:span 2;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#4f46e5,#7c3aed 60%,#06b6d4);box-shadow:0 8px 20px -8px var(--accent2)}
+  .logo small{display:block;font-weight:400;font-size:11.5px;color:var(--lat-muted);line-height:1.35;letter-spacing:0}
   nav{display:grid;gap:3px}
-  nav button{all:unset;box-sizing:border-box;cursor:pointer;padding:10px 12px;border-radius:9px;color:var(--ink);font-weight:500;display:flex;justify-content:space-between;align-items:center}
-  nav button:hover{background:var(--card2)}
-  nav button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
-  nav button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  nav a.loja{padding:10px 12px;border-radius:9px;color:var(--accent);font-weight:600;text-decoration:none}
-  nav a.loja:hover{background:var(--card2)}
-  nav .alerta{background:var(--bad);color:#fff;border-radius:99px;font-size:12px;font-weight:700;padding:0 7px}
-  .rodape{margin-top:auto;display:grid;gap:8px;font-size:13px;padding:0 6px}
-  .rodape select{font:inherit;padding:6px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
-  main{padding:26px 30px 50px;max-width:1320px;width:100%;min-width:0}
-  .vista{display:none}.vista.on{display:block}
-  .titulo{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
-  h1{font-size:25px;margin:0}
-  .titulo p{margin:3px 0 0;color:var(--muted);max-width:760px}
-  h2{font-size:16px;margin:0 0 12px}
+  nav::before{content:"Menu";font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--lat-muted);padding:0 12px 6px}
+  nav button{all:unset;box-sizing:border-box;cursor:pointer;padding:10px 12px;border-radius:10px;color:var(--lat-ink);opacity:.82;font-weight:500;display:flex;justify-content:space-between;align-items:center;transition:background .2s,opacity .2s,transform .15s}
+  nav button:hover{background:var(--lat-hover);opacity:1}
+  nav button:active{transform:scale(.98)}
+  nav button.on{opacity:1;color:#fff;font-weight:600;background:linear-gradient(135deg,#4f46e5,#7c3aed);box-shadow:0 10px 24px -12px var(--accent2)}
+  nav button:focus-visible,nav a:focus-visible{outline:2px solid #a5b4fc;outline-offset:2px}
+  nav button>span:first-child{display:flex;align-items:center;gap:11px}
+  nav a.loja{margin-top:8px;padding:10px 12px;border-radius:10px;color:#a5f3e4;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:11px;border:1px dashed rgba(165,243,228,.35);transition:background .2s}
+  nav a.loja:hover{background:rgba(45,212,191,.08)}
+  nav .alerta{background:#f43f5e;color:#fff;border-radius:99px;font-size:11.5px;font-weight:700;padding:1px 8px;box-shadow:0 0 0 3px rgba(244,63,94,.18)}
+  .rodape{margin-top:auto;display:grid;gap:10px;font-size:13px;padding:14px 8px 0;border-top:1px solid rgba(255,255,255,.08)}
+  .rodape .sec{color:var(--lat-muted)}
+  .rodape .sec b{color:var(--lat-ink);font-size:15px}
+  .rodape label{color:var(--lat-muted)}
+  .rodape select{font:inherit;padding:7px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--lat-ink)}
+  .rodape select option{color:#111}
+  .rodape button.b{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:var(--lat-ink);justify-content:center}
+  .rodape button.b:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25)}
+
+  /* ================= Conteudo ================= */
+  main{padding:30px 36px 56px;max-width:1380px;width:100%;min-width:0}
+  .vista{display:none}.vista.on{display:block;animation:entra .4s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes entra{from{opacity:0;transform:translateY(12px)}}
+  .titulo{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:22px}
+  h1{font-size:28px;margin:0;letter-spacing:-.02em;font-weight:750}
+  .titulo p{margin:5px 0 0;color:var(--muted);max-width:760px}
+  h2{font-size:16px;margin:0 0 14px;font-weight:650;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
   h2 small{font-weight:400;color:var(--muted);font-size:13px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:18px;min-width:0}
-  .grelha{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:20px;min-width:0;box-shadow:var(--sombra);transition:box-shadow .25s,transform .25s}
+  .grelha{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-bottom:20px}
   .grelha>.card{margin-bottom:0}
-  .grelha{margin-bottom:18px}
-  .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:18px}
-  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-  .kpi b{display:block;font-size:28px;font-variant-numeric:tabular-nums;line-height:1.2}
+  .heroi{position:relative;overflow:hidden;border-radius:20px;padding:24px 28px;margin-bottom:22px;color:#fff;
+         background:linear-gradient(120deg,#312e81 0%,#4f46e5 45%,#7c3aed 80%,#0e7490 130%);box-shadow:0 18px 40px -22px #7c3aed}
+  .heroi::after{content:"";position:absolute;right:-60px;top:-80px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.1)}
+  .heroi .rot{opacity:.85;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+  .heroi .valor{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+  .heroi .det{display:flex;flex-wrap:wrap;gap:8px 22px;opacity:.95;font-size:14px;position:relative;z-index:1}
+  .heroi .det span{display:inline-flex;align-items:center;gap:7px}
+
+  /* ================= Indicadores ================= */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:16px;margin-bottom:22px}
+  .kpi{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;box-shadow:var(--sombra);transition:transform .2s,box-shadow .2s}
+  .kpi:hover{transform:translateY(-3px);box-shadow:0 18px 36px -24px rgba(17,24,39,.45)}
+  .kpi b{display:block;font-size:30px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:30px}
   .kpi span{color:var(--muted);font-size:13px}
-  .banner{padding:12px 16px;border-radius:10px;margin-bottom:18px;font-weight:600}
-  .banner.ok{background:var(--ok-bg);color:var(--ok)} .banner.mau{background:var(--bad-bg);color:var(--bad)}
+  .kpi .kic{position:absolute;left:18px;top:16px;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-style:normal;background:var(--accent-bg);color:var(--accent)}
+  .kpi:nth-child(6n+2) .kic{background:color-mix(in srgb,#0d9488 14%,transparent);color:#0d9488}
+  .kpi:nth-child(6n+3) .kic{background:color-mix(in srgb,#e11d48 13%,transparent);color:#e11d48}
+  .kpi:nth-child(6n+4) .kic{background:color-mix(in srgb,#d97706 15%,transparent);color:#d97706}
+  .kpi:nth-child(6n+5) .kic{background:color-mix(in srgb,#0284c7 14%,transparent);color:#0284c7}
+  .kpi:nth-child(6n) .kic{background:color-mix(in srgb,#7c3aed 14%,transparent);color:#7c3aed}
+  .kpis3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  .banner{display:flex;flex-direction:column;padding:13px 16px;border-radius:12px;margin-bottom:20px;font-weight:600;border:1px solid transparent}
+  .banner.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 20%,transparent)}
+  .banner.mau{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 20%,transparent)}
   .banner ul{margin:6px 0 0;padding-left:20px;font-weight:400}
 
-  /* ---------- Tabelas ---------- */
-  .tw{overflow-x:auto}
-  table{border-collapse:collapse;width:100%;font-size:14px}
-  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
-  th{color:var(--muted);font-size:12px;font-weight:600}
+  /* ================= Tabelas ================= */
+  .tw{overflow-x:auto;margin:0 -4px}
+  table{border-collapse:separate;border-spacing:0;width:100%;font-size:14px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-size:11.5px;font-weight:650;text-transform:uppercase;letter-spacing:.06em;background:var(--card2)}
+  thead th:first-child{border-top-left-radius:10px} thead th:last-child{border-top-right-radius:10px}
+  tbody tr{transition:background .15s}
+  tbody tr:hover{background:color-mix(in srgb,var(--accent) 5%,transparent)}
   tr:last-child td{border-bottom:0}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   td.quebra{white-space:normal;min-width:260px}
-  .vazio{color:var(--muted);padding:18px 4px;text-align:center}
-  .pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+  .vazio{color:var(--muted);padding:26px 4px;text-align:center}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:650;padding:3px 10px;border-radius:99px;white-space:nowrap}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85}
   .p-ok{background:var(--ok-bg);color:var(--ok)} .p-bad{background:var(--bad-bg);color:var(--bad)} .p-warn{background:var(--warn-bg);color:var(--warn)} .p-info{background:var(--accent-bg);color:var(--accent)}
   .baixo{color:var(--bad);font-weight:700}
   .sec{color:var(--muted);font-size:13px}
+  .preco{font-weight:650;font-variant-numeric:tabular-nums}
 
-  /* ---------- Formularios ---------- */
-  button.b{font:inherit;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer}
-  button.b:hover{border-color:var(--accent)}
-  button.b.prim{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  /* ================= Botoes e formularios ================= */
+  button.b,a.b{font:inherit;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 15px;border-radius:10px;cursor:pointer;text-decoration:none;
+               display:inline-flex;align-items:center;gap:7px;transition:transform .12s,border-color .2s,background .2s,box-shadow .2s}
+  button.b:hover,a.b:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+  button.b:active,a.b:active{transform:scale(.96)}
+  button.b.prim{background:linear-gradient(135deg,#4f46e5,#7c3aed);border-color:transparent;color:#fff;box-shadow:0 8px 18px -10px var(--accent2)}
+  button.b.prim:hover{box-shadow:0 12px 24px -10px var(--accent2);filter:brightness(1.05)}
   button.b.perigo{color:var(--bad)}
+  button.b.perigo:hover{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
   button.b.perigo.cheio{background:var(--bad);border-color:var(--bad);color:#fff}
-  button.b.peq{padding:4px 9px;font-size:13px}
-  button.b:disabled{opacity:.55;cursor:wait}
-  button.b:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .acoes{display:flex;flex-wrap:wrap;gap:6px}
-  .form{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
-  label{display:grid;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
-  input,select{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  button.b.peq{padding:6px 10px;font-size:13px;border-radius:9px}
+  button.b:disabled{opacity:.55;cursor:wait;transform:none}
+  button.b:focus-visible,a.b:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  td .acoes{flex-wrap:nowrap;gap:6px}
+  .form{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+  label{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--muted)}
+  input,select{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;transition:border-color .2s,box-shadow .2s}
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent);outline:0}
   input[type=number]{width:110px}
-  .pesquisa{width:260px}
-  dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);padding:22px;width:min(560px,calc(100vw - 32px))}
-  dialog::backdrop{background:rgba(10,16,24,.5)}
-  dialog h2{font-size:18px}
+  .pesquisa{width:280px;padding-left:36px;background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a94a6' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E") no-repeat 12px 50%}
+  dialog{border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--ink);padding:24px;width:min(600px,calc(100vw - 32px));box-shadow:0 30px 70px -30px rgba(0,0,0,.5)}
+  dialog::backdrop{background:rgba(8,12,24,.55);backdrop-filter:blur(3px)}
+  dialog[open]{animation:abre .22s both}
+  @keyframes abre{from{opacity:0;transform:translateY(8px) scale(.97)}}
+  dialog h2{font-size:19px}
   dialog .linha{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  dialog .linha3{grid-template-columns:1fr 1fr 1fr}
   dialog label.todo{margin-bottom:12px}
   dialog input,dialog select{width:100%}
-  dialog .fim{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
-  .erro{background:var(--bad-bg);color:var(--bad);border-radius:8px;padding:9px 12px;margin-top:12px;font-size:14px;overflow-wrap:anywhere}
-  #avisos{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:20;max-width:min(420px,calc(100vw - 36px))}
-  .aviso{background:var(--ink);color:var(--card);padding:11px 15px;border-radius:10px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
-  .aviso.mau{background:var(--bad);color:#fff}
-  pre.saida{margin:10px 0 0;background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;font:13px/1.55 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto}
+  dialog .fim{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+  .erro{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:14px;overflow-wrap:anywhere}
+  #avisos{position:fixed;right:20px;bottom:20px;display:grid;gap:8px;z-index:20;max-width:min(420px,calc(100vw - 40px))}
+  .aviso{background:#111827;color:#f9fafb;padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 14px 34px -14px rgba(0,0,0,.5);border-left:4px solid #22c55e;animation:desliza .35s cubic-bezier(.2,.7,.2,1) both}
+  .aviso.mau{border-left-color:#f43f5e}
+  @keyframes desliza{from{opacity:0;transform:translateX(40px)}}
+  pre.saida{margin:12px 0 0;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:13px/1.6 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto}
   pre.saida:empty{display:none}
-  summary{cursor:pointer;font-weight:600}
-  a.b{text-decoration:none;display:inline-block}
+  details>summary{cursor:pointer;font-weight:650;list-style:none;display:flex;align-items:center;gap:8px}
+  details>summary::before{content:"›";font-size:20px;line-height:1;transition:transform .2s;color:var(--muted)}
+  details[open]>summary::before{transform:rotate(90deg)}
 
-  /* ---------- Nos, passos e graficos ---------- */
-  .nos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-  .no{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:14px}
-  .no.off{border-color:var(--bad);background:var(--bad-bg)}
-  .no h3{margin:0 0 8px;font-size:15px;display:flex;justify-content:space-between;align-items:center}
-  dl.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0;font-size:13px}
+  /* ================= Nos, passos e graficos ================= */
+  .nos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .no{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:16px;transition:transform .2s}
+  .no:hover{transform:translateY(-2px)}
+  .no.off{border-color:color-mix(in srgb,var(--bad) 50%,transparent);background:var(--bad-bg)}
+  .no h3{margin:0 0 10px;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+  dl.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;margin:0;font-size:13.5px}
   dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;overflow-wrap:anywhere}
-  ol.passos{margin:0;padding-left:20px;display:grid;gap:5px;font-size:14px}
-  ul.feed{list-style:none;margin:0;padding:0}
-  ul.feed li{padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;display:grid;grid-template-columns:70px 1fr;gap:10px}
+  ol.passos{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:14px;counter-reset:p}
+  ol.passos li{counter-increment:p;display:flex;gap:10px;align-items:center}
+  ol.passos li::before{content:counter(p);flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--accent-bg);color:var(--accent)}
+  ul.feed{list-style:none;margin:0;padding:0;position:relative}
+  ul.feed li{padding:10px 0 10px 22px;border-bottom:1px solid var(--line);font-size:14px;display:grid;grid-template-columns:72px 1fr;gap:10px;position:relative}
+  ul.feed li::before{content:"";position:absolute;left:4px;top:17px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-bg)}
   ul.feed li:last-child{border:0}
   ul.feed time{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
   svg text{fill:var(--muted);font:11px "Segoe UI",sans-serif}
-  .legenda{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:6px}
+  .legenda{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:8px}
   .quad{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
-  .filtros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-  .filtros button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-  .passo{display:grid;grid-template-columns:36px minmax(0,1fr);gap:12px;margin-bottom:0}
-  .passo .n{width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
-  .passo h3{margin:4px 0 4px;font-size:16px}
-  .passo p{margin:0 0 8px;color:var(--muted)}
-  .passo .cmd{display:flex;gap:8px;align-items:center;margin-top:6px}
-  .passo code{background:var(--card2);border:1px solid var(--line);padding:5px 8px;border-radius:6px;overflow-wrap:anywhere;flex:1}
+  .filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .filtros button.on{background:linear-gradient(135deg,#4f46e5,#7c3aed);border-color:transparent;color:#fff}
+  .passo{display:grid;grid-template-columns:42px minmax(0,1fr);gap:14px}
+  .passo .n{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;display:grid;place-items:center;font-weight:800;box-shadow:0 8px 18px -10px var(--accent2)}
+  .passo h3{margin:6px 0 4px;font-size:16.5px}
+  .passo p{margin:0 0 10px;color:var(--muted)}
+  .passo .cmd{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .passo code{background:var(--card2);border:1px solid var(--line);padding:6px 9px;border-radius:8px;overflow-wrap:anywhere;flex:1}
+  #t-cli tbody tr{cursor:pointer}
+  #t-cli tbody tr.sel{background:var(--accent-bg)}
+  .avatar{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;display:inline-grid;place-items:center;font-weight:700;margin-right:10px;vertical-align:middle;font-size:13px}
 
   @media (max-width:1000px){
     .app{grid-template-columns:1fr}
-    aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}
+    aside{position:static;height:auto}
     nav{display:flex;flex-wrap:wrap}
-    .rodape{margin:0}
-    main{padding:18px 16px 40px}
-    .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+    nav::before{display:none}
+    .rodape{margin:0;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+    main{padding:20px 16px 44px}
     .grelha,.nos{grid-template-columns:1fr}
     .pesquisa{width:100%}
+    .heroi .valor{font-size:30px}
+    dialog .linha3{grid-template-columns:1fr}
   }
-  .ic{width:18px;height:18px;flex:none;vertical-align:-3px}
-  nav button>span:first-child{display:flex;align-items:center;gap:10px}
-  nav a.loja{display:flex;align-items:center;gap:10px}
-  button.b,a.b{display:inline-flex;align-items:center;gap:7px;transition:transform .12s,border-color .2s,background .2s,box-shadow .2s}
-  button.b:active,a.b:active{transform:scale(.96)}
-  button.b.prim:hover{box-shadow:0 6px 16px -8px var(--accent)}
-  .kpi{position:relative;transition:transform .2s,box-shadow .2s}
-  .kpi:hover{transform:translateY(-3px);box-shadow:0 14px 30px -22px rgba(20,31,43,.55)}
-  .kpi .kic{position:absolute;right:14px;top:14px;width:36px;height:36px;border-radius:10px;background:var(--accent-bg);color:var(--accent);display:grid;place-items:center}
-  .kpis3{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .card{transition:box-shadow .25s}
-  .card:hover{box-shadow:0 12px 32px -26px rgba(20,31,43,.6)}
-  .vista.on{animation:entra .35s both}
-  @keyframes entra{from{opacity:0;transform:translateY(10px)}}
-  .aviso{animation:desliza .3s both}
-  @keyframes desliza{from{opacity:0;transform:translateX(30px)}}
-  dialog[open]{animation:abre .22s both}
-  @keyframes abre{from{opacity:0;transform:scale(.96)}}
-  #t-cli tbody tr{cursor:pointer;transition:background .15s}
-  #t-cli tbody tr:hover,#t-cli tbody tr.sel{background:var(--accent-bg)}
-  .avatar{width:30px;height:30px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:inline-grid;place-items:center;font-weight:700;margin-right:8px;vertical-align:middle}
-  @media (max-width:1000px){ .kpis3{grid-template-columns:1fr} }
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
@@ -190,6 +229,11 @@
     <!-- ================= INICIO ================= -->
     <section class="vista on" id="v-inicio">
       <div class="titulo"><div><h1>Início</h1><p>Três armazéns regionais. Quando o stock de um produto atinge o mínimo, o sistema encomenda sozinho ao fornecedor.</p></div></div>
+      <div class="heroi">
+        <div class="rot">Receita dos pedidos de clientes</div>
+        <div class="valor" id="h-receita">—</div>
+        <div class="det"><span><svg class="ic"><use href="/icones.svg#recibo"/></svg><b id="h-pedidos">—</b>&nbsp;pedidos pagos</span><span><svg class="ic"><use href="/icones.svg#pessoas"/></svg><b id="h-clientes">—</b>&nbsp;clientes</span><span><svg class="ic"><use href="/icones.svg#camiao"/></svg><b id="h-compras">—</b>&nbsp;compras automáticas ao fornecedor</span></div>
+      </div>
       <div id="estadoGeral"></div>
       <div class="kpis">
         <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#caixa"/></svg></i><b id="k-prod">—</b><span>produtos no catálogo</span></div>
@@ -264,6 +308,7 @@
         <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#pessoas"/></svg></i><b id="c-n">—</b><span>clientes registados</span></div>
         <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#recibo"/></svg></i><b id="c-ped">—</b><span>pedidos feitos</span></div>
         <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#caixa"/></svg></i><b id="c-uni">—</b><span>unidades compradas</span></div>
+        <div class="kpi"><i class="kic"><svg class="ic"><use href="/icones.svg#recibo"/></svg></i><b id="c-valor">—</b><span>valor total pago</span></div>
       </div>
       <div id="c-aviso"></div>
       <div class="card"><h2>Lista de clientes <small>clique num cliente para ver o que comprou</small></h2><div class="tw"><table id="t-cli"></table></div></div>
@@ -306,6 +351,7 @@
       <label>Unidade<input id="pUni" maxlength="20" required list="unidades" placeholder="saco, caixa, garrafão"></label>
       <label>Fornecedor<select id="pForn"></select></label>
     </div>
+    <label class="todo">Preço por unidade (MZN)<input id="pPreco" type="number" min="0" max="10000000" step="0.01" required placeholder="Ex.: 1850.00"></label>
     <datalist id="unidades"><option>saco</option><option>caixa</option><option>garrafão</option><option>unidade</option></datalist>
     <table><thead><tr><th>Armazém</th><th id="thStock">Stock inicial</th><th>Stock mínimo</th></tr></thead><tbody id="pReg"></tbody></table>
     <div class="erro" id="pErro" hidden></div>
@@ -357,6 +403,7 @@ const regiaoDe = no => { const s = String(no).replace('agente-', ''); return s.c
 const SVGNS = 'http://www.w3.org/2000/svg';
 const svgEl = (nome, at) => { const e = document.createElementNS(SVGNS, nome); for (const k in at) e.setAttribute(k, at[k]); return e; };
 const num = n => Number(n).toLocaleString('pt-PT');
+const mzn = v => Number(v || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MZN';
 /* O servidor guarda as horas em UTC; aqui mostram-se na hora de quem esta a usar */
 const dataDe = t => new Date(String(t).replace(' ', 'T').replace(/Z?$/, 'Z'));
 const horaLocal = t => dataDe(t).toLocaleTimeString('pt-PT');
@@ -437,7 +484,7 @@ const historico = { Maputo: [], Beira: [], Nampula: [] };
 function construirProdutos(linhas) {
   const m = new Map();
   linhas.forEach(l => {
-    if (!m.has(l.produto_id)) m.set(l.produto_id, { id: l.produto_id, nome: l.nome, unidade: l.unidade, fornecedor: l.fornecedor_id, reg: {} });
+    if (!m.has(l.produto_id)) m.set(l.produto_id, { id: l.produto_id, nome: l.nome, unidade: l.unidade, preco: l.preco, fornecedor: l.fornecedor_id, reg: {} });
     m.get(l.produto_id).reg[l.regiao] = l;
   });
   return [...m.values()].sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
@@ -485,6 +532,10 @@ function desenharInicio(r, baixos) {
   contar($('k-baixo'), baixos.filter(l => !l.em_encomenda).length);
   contar($('k-cam'), r.ordensPorEstado.ENVIADA || 0);
   contar($('k-fat'), r.hdfs.faturasTotal || 0);
+  $('h-receita').textContent = mzn(r.receita);
+  $('h-pedidos').textContent = num(r.pedidosClientes || 0);
+  $('h-compras').textContent = num(Object.values(r.ordensPorEstado).reduce((s, n) => s + n, 0));
+  if (r.clientesTotal !== undefined) $('h-clientes').textContent = num(r.clientesTotal);
   if ($('v-inicio').classList.contains('on')) barras(r.stock.linhas);
   html($('feed'), (r.auditoria || []).filter(a => frase(a)).slice(0, 8).map(a =>
     `<li><time>${esc(horaLocal(a.hora))}</time><span>${esc(frase(a))}</span></li>`).join('') || '<li class="vazio" style="display:block">Ainda sem atividade. Regista uma venda para começar.</li>');
@@ -553,13 +604,13 @@ function desenharProdutos() {
   const q = $('pesq').value.trim().toLowerCase();
   const lista = produtos.filter(p => !q || p.id.toLowerCase().includes(q) || p.nome.toLowerCase().includes(q));
   const forn = ultimo ? ultimo.catalogoFornecedores : [];
-  tabela($('t-prod'), ['Código', 'Produto', 'Unidade', 'Fornecedor', ...REG.map(r => '#' + r), '#Total', 'Estado', 'Ações'],
+  tabela($('t-prod'), ['Produto', '#Preço', ...REG.map(r => '#' + r), '#Total', 'Estado', 'Ações'],
     lista.map(p => {
       const f = forn.find(x => x.id === p.fornecedor);
       const total = Object.values(p.reg).reduce((s, l) => s + l.quantidade, 0);
-      return [esc(p.id), `<b>${esc(p.nome)}</b>`, esc(p.unidade), f ? esc(f.nome) : esc(p.fornecedor),
+      return [`<b>${esc(p.nome)}</b><br><span class="sec">${esc(p.id)} · por ${esc(p.unidade)} · ${f ? esc(f.nome) : esc(p.fornecedor)}</span>`, `<span class="preco">${mzn(p.preco)}</span>`,
         ...REG.map(r => celulaStock(p.reg[r])), `<b>${num(total)}</b>`, estadoProduto(p),
-        `<div class="acoes"><button class="b peq prim" data-a="vender" data-id="${esc(p.id)}"><svg class="ic"><use href="/icones.svg#venda"/></svg>Vender</button><button class="b peq" data-a="entrada" data-id="${esc(p.id)}"><svg class="ic"><use href="/icones.svg#entrada"/></svg>Entrada</button><button class="b peq" data-a="editar" data-id="${esc(p.id)}" title="Editar" aria-label="Editar"><svg class="ic"><use href="/icones.svg#editar"/></svg></button><button class="b peq perigo" data-a="apagar" data-id="${esc(p.id)}" title="Apagar" aria-label="Apagar"><svg class="ic"><use href="/icones.svg#lixo"/></svg></button></div>`];
+        `<div class="acoes"><button class="b peq prim" data-a="vender" data-id="${esc(p.id)}"><svg class="ic"><use href="/icones.svg#venda"/></svg>Vender</button><button class="b peq" data-a="entrada" data-id="${esc(p.id)}" title="Dar entrada" aria-label="Dar entrada"><svg class="ic"><use href="/icones.svg#entrada"/></svg></button><button class="b peq" data-a="editar" data-id="${esc(p.id)}" title="Editar" aria-label="Editar"><svg class="ic"><use href="/icones.svg#editar"/></svg></button><button class="b peq perigo" data-a="apagar" data-id="${esc(p.id)}" title="Apagar" aria-label="Apagar"><svg class="ic"><use href="/icones.svg#lixo"/></svg></button></div>`];
     }), q ? 'Nenhum produto encontrado.' : 'Sem produtos. Regista o primeiro.');
 }
 $('pesq').oninput = desenharProdutos;
@@ -576,6 +627,7 @@ function abrirProduto(p) {
   $('thStock').textContent = p ? 'Stock atual' : 'Stock inicial';
   $('pNome').value = p ? p.nome : '';
   $('pUni').value = p ? p.unidade : '';
+  $('pPreco').value = p ? Number(p.preco).toFixed(2) : '';
   $('pForn').innerHTML = ultimo.catalogoFornecedores.map(f => `<option value="${esc(f.id)}">${esc(f.nome)}</option>`).join('');
   if (p) $('pForn').value = p.fornecedor;
   $('pReg').innerHTML = REG.map(r => {
@@ -595,7 +647,7 @@ $('fProd').onsubmit = async e => {
     regioes[r] = { limiteMinimo: Number(document.querySelector(`[data-m="${r}"]`).value) };
     if (!produtoEmEdicao) regioes[r].quantidade = Number(document.querySelector(`[data-q="${r}"]`).value);
   });
-  const corpo = { nome: $('pNome').value, unidade: $('pUni').value, fornecedorId: $('pForn').value, regioes };
+  const corpo = { nome: $('pNome').value, unidade: $('pUni').value, preco: Number($('pPreco').value), fornecedorId: $('pForn').value, regioes };
   $('pOk').disabled = true; $('pOk').textContent = 'A gravar nos 3 armazéns...'; $('pErro').hidden = true;
   try {
     const r = produtoEmEdicao
@@ -925,11 +977,14 @@ async function compraSimultanea() {
 }
 
 /* ---------- Clientes ---------- */
-let clienteSel = null, dadosClientes = null;
+let clienteSel = null, dadosClientes = null, atualizacoes = 0;
+const metodoNome = m => ({ MPESA: 'M-Pesa', EMOLA: 'e-Mola', CARTAO: 'Cartão', TRANSFERENCIA: 'Transferência' })[m] || esc(m || '');
 async function carregarClientes() {
   try {
     const r = await (await fetch('/painel/clientes')).json();
     dadosClientes = r;
+    if (ultimo) ultimo.clientesTotal = r.clientes.length;
+    $('h-clientes').textContent = num(r.clientes.length);
     desenharClientes();
   } catch (e) { html($('c-aviso'), '<div class="banner mau">Não foi possível carregar os clientes.</div>'); }
 }
@@ -938,24 +993,25 @@ function desenharClientes() {
   contar($('c-n'), r.clientes.length);
   contar($('c-ped'), r.clientes.reduce((s, c) => s + c.pedidos, 0));
   contar($('c-uni'), r.clientes.reduce((s, c) => s + c.unidades, 0));
+  $('c-valor').textContent = mzn(r.clientes.reduce((s, c) => s + Number(c.valor || 0), 0));
   html($('c-aviso'), r.semResposta.length ? `<div class="banner mau">Sem dados de ${esc(r.semResposta.join(', '))}: os totais podem estar incompletos.</div>` : '');
-  tabela($('t-cli'), ['Cliente', 'Tipo', 'Email', '#Pedidos', '#Unidades', 'Último pedido', 'Cliente desde'], r.clientes.map(c => [
+  tabela($('t-cli'), ['Cliente', 'Tipo', 'Email', '#Pedidos', '#Unidades', '#Valor gasto', 'Último pedido', 'Cliente desde'], r.clientes.map(c => [
     `<span class="avatar">${esc(c.nome.charAt(0).toUpperCase())}</span><b>${esc(c.nome)}</b>`, pill('p-info', c.tipo), esc(c.email),
-    num(c.pedidos), num(c.unidades), c.ultimo ? esc(dataHoraLocal(c.ultimo)) : '<span class="sec">ainda sem pedidos</span>', esc(dataHoraLocal(c.criado))]),
+    num(c.pedidos), num(c.unidades), `<span class="preco">${mzn(c.valor)}</span>`, c.ultimo ? esc(dataHoraLocal(c.ultimo)) : '<span class="sec">ainda sem pedidos</span>', esc(dataHoraLocal(c.criado))]),
     'Ainda não há clientes. Crie uma conta na área do cliente.');
   [...$('t-cli').querySelectorAll('tbody tr')].forEach((tr, i) => {
     const c = r.clientes[i]; if (!c) return;
     tr.dataset.id = c.id; tr.tabIndex = 0;
     tr.classList.toggle('sel', c.id === clienteSel);
   });
-  const linha = p => [esc(dataHoraLocal(p.criado)), `<span class="mono">${esc(p.pedido)}</span>`, esc(p.regiao), `${esc(p.produto_id)} · ${esc(p.produto)}`, num(p.quantidade)];
-  tabela($('t-pedRec'), ['Data e hora', 'Pedido', 'Cliente', 'Armazém', 'Produto', '#Quantidade'],
+  const linha = p => [esc(dataHoraLocal(p.criado)), `<span class="mono">${esc(p.pedido)}</span>`, esc(p.regiao), `${esc(p.produto_id)} · ${esc(p.produto)}`, num(p.quantidade), mzn(p.subtotal), p.pagamento ? pill('p-ok', `${p.pagamento === 'PAGO' ? 'Pago' : esc(p.pagamento)} · ${metodoNome(p.metodo)}`) : '<span class="sec">—</span>'];
+  tabela($('t-pedRec'), ['Data e hora', 'Pedido', 'Cliente', 'Armazém', 'Produto', '#Quantidade', '#Valor', 'Pagamento'],
     r.pedidos.slice(0, 25).map(p => { const l = linha(p); l.splice(2, 0, `${esc(p.cliente)} <span class="sec">${esc(p.tipo)}</span>`); return l; }), 'Ainda não há pedidos.');
   const sel = r.clientes.find(c => c.id === clienteSel);
   $('c-detalhe').hidden = !sel;
   if (sel) {
-    $('c-detalheTit').innerHTML = `${esc(sel.nome)} <small>${esc(sel.tipo)} · ${num(sel.pedidos)} pedidos · ${num(sel.unidades)} unidades</small>`;
-    tabela($('t-cliPed'), ['Data e hora', 'Pedido', 'Armazém', 'Produto', '#Quantidade'], r.pedidos.filter(p => p.cliente_id === sel.id).map(linha), 'Este cliente ainda não fez pedidos.');
+    $('c-detalheTit').innerHTML = `${esc(sel.nome)} <small>${esc(sel.tipo)} · ${num(sel.pedidos)} pedidos · ${num(sel.unidades)} unidades · ${mzn(sel.valor)}</small>`;
+    tabela($('t-cliPed'), ['Data e hora', 'Pedido', 'Armazém', 'Produto', '#Quantidade', '#Valor', 'Pagamento'], r.pedidos.filter(p => p.cliente_id === sel.id).map(linha), 'Este cliente ainda não fez pedidos.');
   }
 }
 function escolherCliente(e) {
@@ -975,7 +1031,7 @@ async function atualizar() {
     r.nos.forEach(n => { if (n.online && historico[n.regiao]) { historico[n.regiao].push(n.desvioMs / 1000); if (historico[n.regiao].length > 40) historico[n.regiao].shift(); } });
     ultimo = r;
     desenhar(r);
-    if ($('v-clientes').classList.contains('on')) carregarClientes();
+    if ($('v-clientes').classList.contains('on') || ($('v-inicio').classList.contains('on') && !(atualizacoes++ % 5))) carregarClientes();
   } catch (e) {
     $('hora').textContent = 'sem resposta';
     html($('estadoGeral'), '<div class="banner mau">O armazém de Maputo não responde. Abre o sistema pela Beira (localhost:8082) ou por Nampula (localhost:8083).</div>');

@@ -49,7 +49,7 @@ public class StockController {
     @GetMapping("/stock")
     public List<Map<String, Object>> stockLocal() {
         return jdbc.queryForList(
-            "SELECT s.produto_id, p.nome, p.unidade, s.regiao, s.quantidade, s.limite_minimo, " +
+            "SELECT s.produto_id, p.nome, p.unidade, p.preco, s.regiao, s.quantidade, s.limite_minimo, " +
             "       s.fornecedor_id, s.quantidade <= s.limite_minimo AS abaixo_minimo, " +
             "       (SELECT COALESCE(SUM(o.quantidade), 0) FROM ordem_compra o " +
             "        WHERE o.produto_id = s.produto_id AND " + ORDEM_ABERTA + ") AS em_encomenda " +

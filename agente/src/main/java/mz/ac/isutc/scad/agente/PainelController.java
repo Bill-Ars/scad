@@ -123,13 +123,19 @@ public class PainelController {
         }
         List<Object> ordens = new ArrayList<>();
         Map<String, Long> porEstado = new LinkedHashMap<>();
+        java.math.BigDecimal receita = java.math.BigDecimal.ZERO;
+        long pedidosClientes = 0;
         for (Map<String, Object> resposta : respostas) {
             ordens.addAll((List<?>) resposta.get("ordens"));
             ((Map<?, ?>) resposta.get("porEstado")).forEach((estado, total) ->
                     porEstado.merge(String.valueOf(estado), ((Number) total).longValue(), Long::sum));
+            if (resposta.get("receita") instanceof Number n) receita = receita.add(new java.math.BigDecimal(n.toString()));
+            if (resposta.get("pedidosClientes") instanceof Number n) pedidosClientes += n.longValue();
         }
         r.put("ordens", ordens);
         r.put("ordensPorEstado", porEstado);
+        r.put("receita", receita);
+        r.put("pedidosClientes", pedidosClientes);
 
         // Vendas, entradas e entregas de todas as regioes
         List<Map<String, Object>> movimentos = new ArrayList<>(movimentos());
@@ -272,6 +278,7 @@ public class PainelController {
             c.put("pedidos", 0L);
             c.put("unidades", 0L);
             c.put("ultimo", null);
+            c.put("valor", java.math.BigDecimal.ZERO);
             porId.put((String) c.get("id"), c);
         }
         List<String> semResposta = new ArrayList<>();
@@ -283,6 +290,7 @@ public class PainelController {
                     if (c == null) continue;
                     c.put("pedidos", (Long) c.get("pedidos") + ((Number) r.get("pedidos")).longValue());
                     c.put("unidades", (Long) c.get("unidades") + ((Number) r.get("unidades")).longValue());
+                    c.put("valor", ((java.math.BigDecimal) c.get("valor")).add(new java.math.BigDecimal(String.valueOf(r.get("valor")))));
                     String u = (String) r.get("ultimo");
                     if (c.get("ultimo") == null || u.compareTo((String) c.get("ultimo")) > 0) c.put("ultimo", u);
                 }
@@ -323,6 +331,14 @@ public class PainelController {
             r.put("ordens", List.of());
         }
         r.put("porEstado", porEstado);
+        try {
+            Map<String, Object> v = jdbc.queryForMap("SELECT COALESCE(SUM(valor), 0) AS receita, count(*) AS pedidos FROM pagamento");
+            r.put("receita", v.get("receita"));
+            r.put("pedidosClientes", v.get("pedidos"));
+        } catch (Exception e) {
+            r.put("receita", 0);
+            r.put("pedidosClientes", 0);
+        }
         return r;
     }
 
