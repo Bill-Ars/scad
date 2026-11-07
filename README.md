@@ -21,6 +21,14 @@ docker compose ps                # 20 contentores em execucao
 Esperar 1 a 2 minutos e abrir **http://localhost:8081**. O sistema arranca **vazio**: so existem os 3 armazens e os
 2 fornecedores; os produtos registam-se na area de gestao.
 
+## Capturas de ecra
+
+| Entrada (cliente) | Criar conta |
+|---|---|
+| ![Pagina de entrada](agente/src/main/resources/static/img/painel.png) | ![Criar conta de cliente](agente/src/main/resources/static/img/criar-conta.png) |
+| **Entrada (gestao)** | **Gestao: produtos por armazem** |
+| ![Entrada na gestao](agente/src/main/resources/static/img/gestao.png) | ![Lista de produtos por armazem](agente/src/main/resources/static/img/interior.png) |
+
 ## Enderecos e acessos
 
 | O que | Endereco | Acesso |
