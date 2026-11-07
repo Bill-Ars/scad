@@ -53,7 +53,7 @@ class AgenteStockImpl extends AgenteStockPOA {
 
 /**
  * Robo/agente de stock local: e servidor CORBA (AgenteStock) e cliente CORBA da Auditoria.
- * De 10 em 10 segundos verifica o stock e dispara um alerta (oneway) quando um produto fica abaixo do minimo.
+ * De 10 em 10 segundos verifica o stock e dispara um alerta (oneway) quando um produto atinge o minimo.
  */
 public class RoboStock {
 
@@ -96,11 +96,11 @@ public class RoboStock {
                     String p = rs.getString(1);
                     int q = rs.getInt(2);
                     int min = rs.getInt(3);
-                    if (q < min && !jaAlertados.contains(p)) {
+                    if (q <= min && !jaAlertados.contains(p)) {
                         auditoria.dispararAlerta(new AlertaStock(p, REGIAO, q, min, System.currentTimeMillis()));
                         jaAlertados.add(p);
-                        System.out.println("[ROBO " + REGIAO + "] dispararAlerta(" + p + ": " + q + " < " + min + ")");
-                    } else if (q >= min) {
+                        System.out.println("[ROBO " + REGIAO + "] dispararAlerta(" + p + ": " + q + " <= " + min + ")");
+                    } else if (q > min) {
                         jaAlertados.remove(p);
                     }
                 }

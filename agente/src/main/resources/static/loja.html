@@ -150,7 +150,7 @@
     <div class="grelhaPedido">
       <div>
         <h1>Fazer um pedido</h1>
-        <p class="sec">Escolha o armazém que o vai servir, junte um ou vários produtos e confirme. O stock é atualizado no momento.</p>
+        <p class="sec">Escolha o armazém que o vai servir: cada armazém tem os seus próprios produtos. Junte um ou vários e confirme. O stock é atualizado no momento.</p>
         <div class="armazens" id="armazens" role="group" aria-label="Armazém"></div>
         <div class="produtos" id="produtos"><p class="vazio">A carregar produtos...</p></div>
       </div>
@@ -227,7 +227,7 @@ async function carregar() {
 }
 function livreDe(p) { return p.disponivel - (carrinho[p.id] || 0); }
 function desenharProdutos() {
-  if (!produtos.length) { $('produtos').innerHTML = '<p class="vazio">Sem produtos neste armazém.</p>'; return; }
+  if (!produtos.length) { $('produtos').innerHTML = `<p class="vazio">O armazém de ${esc(regiao)} ainda não tem produtos à venda. Experimente outro armazém.</p>`; return; }
   const valores = {}; document.querySelectorAll('[data-q]').forEach(i => valores[i.dataset.q] = i.value);
   $('produtos').innerHTML = produtos.map((p, k) => {
     const livre = livreDe(p);

@@ -23,4 +23,4 @@ CREATE TABLE auditoria (
   operacao   VARCHAR(40) NOT NULL,
   detalhe    TEXT
 );
-INSERT INTO stock VALUES ('P1','Maputo',120,50,'F1'), ('P2','Maputo',30,40,'F1'), ('P3','Maputo',80,30,'F2'), ('P4','Maputo',200,60,'F2');
+-- Armazem vazio: o stock e definido ao registar cada produto (ou com zerar.ps1 -Demo)

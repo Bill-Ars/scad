@@ -106,32 +106,59 @@ public class ParticipanteController {
             case "ORDEM" -> escrever(c,
                     "INSERT INTO ordem_compra (id, produto_id, fornecedor_id, regiao, quantidade, estado) VALUES (?, ?, ?, ?, ?, 'CONFIRMADA')",
                     p.get("ordemId") + "-" + regiao.toUpperCase(), p.get("produtoId"), p.get("fornecedorId"), regiao, p.get("quantidade"));
+            // A ficha do produto (tabela replicada) e gravada nos 3 nos; a linha de stock (fragmento) so existe
+            // nos armazens que vendem o produto ("vende" = true na parte deste no)
             case "PRODUTO_CRIAR" -> {
                 escrever(c, "INSERT INTO produto (id, nome, unidade, preco) VALUES (?, ?, ?, ?)",
                         p.get("id"), texto(p, "nome"), texto(p, "unidade"), new java.math.BigDecimal(texto(p, "preco")));
-                escrever(c, "INSERT INTO stock (produto_id, regiao, quantidade, limite_minimo, fornecedor_id) VALUES (?, ?, ?, ?, ?)",
-                        p.get("id"), regiao, p.get("quantidade"), p.get("limiteMinimo"), p.get("fornecedorId"));
+                if (vende(p)) {
+                    escrever(c, "INSERT INTO stock (produto_id, regiao, quantidade, limite_minimo, fornecedor_id) VALUES (?, ?, ?, ?, ?)",
+                            p.get("id"), regiao, p.get("quantidade"), p.get("limiteMinimo"), p.get("fornecedorId"));
+                }
             }
             case "PRODUTO_EDITAR" -> {
-                exigirSemEncomendaSeMudarFornecedor(c, p);
-                escrever(c, "UPDATE produto SET nome = ?, unidade = ?, preco = ? WHERE id = ?", texto(p, "nome"), texto(p, "unidade"),
-                        new java.math.BigDecimal(texto(p, "preco")), p.get("id"));
-                if (escrever(c, "UPDATE stock SET limite_minimo = ?, fornecedor_id = ? WHERE produto_id = ?",
-                        p.get("limiteMinimo"), p.get("fornecedorId"), p.get("id")) == 0) {
+                if (escrever(c, "UPDATE produto SET nome = ?, unidade = ?, preco = ? WHERE id = ?", texto(p, "nome"), texto(p, "unidade"),
+                        new java.math.BigDecimal(texto(p, "preco")), p.get("id")) == 0) {
                     throw new SQLException("produto inexistente em " + regiao);
+                }
+                boolean tem = temStock(c, p.get("id"));
+                if (vende(p) && tem) {
+                    exigirSemEncomendaSeMudarFornecedor(c, p);
+                    escrever(c, "UPDATE stock SET limite_minimo = ?, fornecedor_id = ? WHERE produto_id = ?",
+                            p.get("limiteMinimo"), p.get("fornecedorId"), p.get("id"));
+                } else if (vende(p)) {
+                    // passa a vender neste armazem: nasce a linha do fragmento
+                    escrever(c, "INSERT INTO stock (produto_id, regiao, quantidade, limite_minimo, fornecedor_id) VALUES (?, ?, ?, ?, ?)",
+                            p.get("id"), regiao, p.get("quantidade") instanceof Integer q ? q : 0, p.get("limiteMinimo"), p.get("fornecedorId"));
+                } else if (tem) {
+                    // deixa de vender neste armazem
+                    if (temEncomendaAberta(c, p.get("id"))) throw new SQLException("ha uma encomenda a caminho para " + regiao);
+                    escrever(c, "DELETE FROM stock WHERE produto_id = ?", p.get("id"));
                 }
             }
             case "PRODUTO_APAGAR" -> {
                 if (temEncomendaAberta(c, p.get("id"))) throw new SQLException("ha uma encomenda a caminho para " + regiao);
-                // A ficha do produto fica: as ordens e as faturas antigas continuam a apontar para ela
-                if (escrever(c, "DELETE FROM stock WHERE produto_id = ?", p.get("id")) == 0) {
-                    throw new SQLException("produto inexistente em " + regiao);
-                }
+                // A ficha do produto fica: as ordens e as faturas antigas continuam a apontar para ela.
+                // Um armazem que nao vendia o produto nao tem linha de stock e vota SIM na mesma.
+                escrever(c, "DELETE FROM stock WHERE produto_id = ?", p.get("id"));
             }
             case "CLIENTE_CRIAR" -> escrever(c,
                     "INSERT INTO cliente (id, nome, tipo, email, senha_hash) VALUES (?, ?, ?, ?, ?)",
                     p.get("id"), texto(p, "nome"), texto(p, "tipoCliente"), texto(p, "email"), p.get("senhaHash"));
             default -> throw new SQLException("tipo de transacao desconhecido: " + tipo);
+        }
+    }
+
+    private static boolean vende(Map<String, Object> p) {
+        return Boolean.TRUE.equals(p.get("vende"));
+    }
+
+    private static boolean temStock(Connection c, Object produtoId) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("SELECT 1 FROM stock WHERE produto_id = ? FOR UPDATE")) {
+            ps.setObject(1, produtoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         }
     }
 

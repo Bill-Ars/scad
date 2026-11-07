@@ -16,8 +16,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Catalogo de produtos. O produto esta replicado nos 3 nos e tem stock em cada fragmento, por isso
- * registar, editar ou apagar passa por 2PC: fica feito nos 3 armazens ou em nenhum.
+ * Catalogo de produtos. A ficha do produto (tabela replicada) existe nos 3 nos, mas cada armazem escolhe
+ * o que vende: so os armazens escolhidos tem a linha do produto no seu fragmento de STOCK. Registar,
+ * editar ou apagar passa por 2PC entre os 3 nos: fica feito em todos ou em nenhum.
  */
 @RestController
 @RequestMapping("/painel/produtos")
@@ -62,11 +63,14 @@ public class ProdutoController {
                                                          String operacao, String detalhe) {
         Map<String, Map<String, Object>> partes = new LinkedHashMap<>();
         Map<String, Object> regioes = (Map<String, Object>) pedido.getOrDefault("regioes", Map.of());
+        // Os 3 nos participam sempre (a ficha do produto esta replicada em todos); cada um sabe pela
+        // sua parte se vende o produto, isto e, se o seu fragmento de stock tem a linha do produto
         for (String regiao : REGIOES) {
             Map<String, Object> parte = new LinkedHashMap<>(pedido);
             parte.remove("regioes");
             parte.put("tipo", tipo);
             parte.put("id", id);
+            parte.put("vende", regioes.containsKey(regiao));
             parte.putAll((Map<String, Object>) regioes.getOrDefault(regiao, Map.of()));
             partes.put(regiao, parte);
         }
@@ -76,6 +80,8 @@ public class ProdutoController {
             r.put("erro", "Nada foi alterado em nenhum armazem: " + r.get("fase1_votos"));
             return ResponseEntity.status(HttpStatus.CONFLICT).body(r);
         }
+        if (!regioes.isEmpty()) detalhe += " | " + String.join(",", REGIOES.stream().filter(regioes::containsKey).toList());
+        r.put("armazens", REGIOES.stream().filter(regioes::containsKey).toList());
         motor.auditar(operacao, detalhe);
         return ResponseEntity.ok(r);
     }
@@ -90,12 +96,19 @@ public class ProdutoController {
         Integer fornecedor = jdbc.queryForObject("SELECT count(*) FROM fornecedor WHERE id = ?", Integer.class, texto(p, "fornecedorId"));
         if (fornecedor == null || fornecedor == 0) return "fornecedor invalido";
         if (!(p.get("regioes") instanceof Map)) return "faltam os dados dos armazens";
+        // So vem os armazens que vendem o produto; os que faltam nao tem (ou deixam de ter) stock dele
         Map<String, Object> regioes = (Map<String, Object>) p.get("regioes");
-        for (String regiao : REGIOES) {
-            if (!(regioes.get(regiao) instanceof Map)) return "faltam os dados de " + regiao;
-            Map<String, Object> dados = (Map<String, Object>) regioes.get(regiao);
+        regioes.keySet().retainAll(REGIOES);
+        if (regioes.isEmpty()) return "escolha pelo menos um armazem que venda o produto";
+        for (Map.Entry<String, Object> e : regioes.entrySet()) {
+            String regiao = e.getKey();
+            if (!(e.getValue() instanceof Map)) return "faltam os dados de " + regiao;
+            Map<String, Object> dados = (Map<String, Object>) e.getValue();
             if (!inteiroEntre(dados.get("limiteMinimo"), 1, MAXIMO)) return "o minimo de " + regiao + " tem de estar entre 1 e " + MAXIMO;
-            if (novo && !inteiroEntre(dados.get("quantidade"), 0, MAXIMO)) return "o stock de " + regiao + " tem de estar entre 0 e " + MAXIMO;
+            // ao criar, ou ao acrescentar um armazem na edicao, indica-se o stock inicial
+            if ((novo || dados.containsKey("quantidade")) && !inteiroEntre(dados.get("quantidade"), 0, MAXIMO)) {
+                return "o stock de " + regiao + " tem de estar entre 0 e " + MAXIMO;
+            }
         }
         return null;
     }

@@ -1,0 +1,19 @@
+# Regras comuns: timeout curto de ligação (como o heartbeat), corpo grande para os PDF
+proxy_connect_timeout 2s;
+proxy_read_timeout    60s;
+proxy_send_timeout    60s;
+client_max_body_size  20m;
+proxy_http_version    1.1;
+proxy_buffering       off;
+
+# Nomes dos serviços do PC1 (o pedido chega com "Host: nome:porta")  ->  porta publicada no PC1
+server { listen 8080; server_name agente-maputo;   location / { proxy_pass http://${PC1}:8081; } }
+server { listen 8080; server_name agente-beira;    location / { proxy_pass http://${PC1}:8082; } }
+server { listen 8080; server_name fornecedor-rest; location / { proxy_pass http://${PC1}:8091; } }
+server { listen 8080; server_name fornecedor-soap; location / { proxy_pass http://${PC1}:8092; } }
+
+# HDFS: NameNode e os 3 DataNodes
+server { listen 9870; location / { proxy_pass http://${PC1}:9870; } }
+server { listen 9864; server_name datanode1; location / { proxy_pass http://${PC1}:9864; } }
+server { listen 9864; server_name datanode2; location / { proxy_pass http://${PC1}:9865; } }
+server { listen 9864; server_name datanode3; location / { proxy_pass http://${PC1}:9866; } }

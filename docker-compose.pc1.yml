@@ -1,0 +1,235 @@
+# SCAD em 2 computadores: PC1 (Maputo, Beira, HDFS, CORBA, fornecedores)
+# Uso: docker compose -f docker-compose.pc1.yml --env-file multi/ips.env up -d --build
+name: scad
+
+services:
+
+  # ===================== MAPUTO =====================
+  db-maputo:
+    image: postgres:16
+    command: ["postgres", "-c", "max_prepared_transactions=10", "-c", "cluster_name=db-maputo"]
+    environment:
+      POSTGRES_DB: scad
+      POSTGRES_PASSWORD: scad
+    ports: ["5441:5432"]
+    volumes:
+      - dados-maputo:/var/lib/postgresql/data
+      - ./db/00-replicacao.sh:/docker-entrypoint-initdb.d/00-replicacao.sh
+      - ./db/comum.sql:/docker-entrypoint-initdb.d/01-comum.sql
+      - ./db/maputo.sql:/docker-entrypoint-initdb.d/02-fragmento.sql
+    networks: [scad-net]
+
+    
+
+  db-maputo-rep:
+    image: postgres:16
+    user: postgres
+    entrypoint: ["bash", "/replica.sh"]
+    environment:
+      PRIMARIO: db-maputo
+      NOME_NO: db-maputo-rep
+      REPL_PASS: replica
+    ports: ["5451:5432"]
+    volumes:
+      - dados-maputo-rep:/var/lib/postgresql/data
+      - ./db/replica.sh:/replica.sh
+    depends_on: [db-maputo]
+    networks: [scad-net]
+
+  # ===================== BEIRA =====================
+  db-beira:
+    image: postgres:16
+    command: ["postgres", "-c", "max_prepared_transactions=10", "-c", "cluster_name=db-beira"]
+    environment:
+      POSTGRES_DB: scad
+      POSTGRES_PASSWORD: scad
+    ports: ["5442:5432"]
+    volumes:
+      - dados-beira:/var/lib/postgresql/data
+      - ./db/00-replicacao.sh:/docker-entrypoint-initdb.d/00-replicacao.sh
+      - ./db/comum.sql:/docker-entrypoint-initdb.d/01-comum.sql
+      - ./db/beira.sql:/docker-entrypoint-initdb.d/02-fragmento.sql
+    networks: [scad-net]
+
+  db-beira-rep:
+    image: postgres:16
+    user: postgres
+    entrypoint: ["bash", "/replica.sh"]
+    environment:
+      PRIMARIO: db-beira
+      NOME_NO: db-beira-rep
+      REPL_PASS: replica
+    ports: ["5452:5432"]
+    volumes:
+      - dados-beira-rep:/var/lib/postgresql/data
+      - ./db/replica.sh:/replica.sh
+    depends_on: [db-beira]
+    networks: [scad-net]
+
+  # ===================== AGENTES =====================
+  agente-maputo:
+    build: ./agente
+    environment:
+      REGIAO: Maputo
+      DESVIO_S: "0"
+      BERKELEY_MESTRE: "true"
+      DB_URL: jdbc:postgresql://db-maputo:5432,db-maputo-rep:5432/scad?targetServerType=preferPrimary
+      DB_PASS: scad
+      PARES: http://agente-beira:8080,http://agente-nampula:8080
+    ports: ["8081:8080"]
+    depends_on: [db-maputo, db-maputo-rep]
+    networks: [scad-net]
+
+  agente-beira:
+    build: ./agente
+    environment:
+      REGIAO: Beira
+      DESVIO_S: "25"
+      BERKELEY_MESTRE: "false"
+      DB_URL: jdbc:postgresql://db-beira:5432,db-beira-rep:5432/scad?targetServerType=preferPrimary
+      DB_PASS: scad
+      PARES: http://agente-maputo:8080,http://agente-nampula:8080
+    ports: ["8082:8080"]
+    depends_on: [db-beira, db-beira-rep]
+    networks: [scad-net]
+
+  # ===================== FORNECEDORES EXTERNOS =====================
+  fornecedor-rest:
+    build: ./fornecedor
+    environment:
+      MODO: REST
+      NOME: Distribuidora Moderna
+    ports: ["8091:8080"]
+    networks: [scad-net]
+
+  fornecedor-soap:
+    build: ./fornecedor
+    environment:
+      MODO: SOAP
+      NOME: Grossista Legado
+    ports: ["8092:8080"]
+    networks: [scad-net]
+
+  # ===================== DFS: HDFS (1 NameNode + 3 DataNodes) =====================
+  namenode:
+    image: apache/hadoop:3
+    hostname: namenode
+    command: ["hdfs", "namenode"]
+    ports: ["9870:9870"]
+    environment:
+      <<: &hdfs-env
+        CORE-SITE.XML_fs.defaultFS: hdfs://namenode
+        HDFS-SITE.XML_dfs.namenode.rpc-address: namenode:8020
+        HDFS-SITE.XML_dfs.namenode.name.dir: /tmp/hadoop-root/dfs/name
+        HDFS-SITE.XML_dfs.replication: "3"
+        HDFS-SITE.XML_dfs.permissions.enabled: "false"
+        HDFS-SITE.XML_dfs.webhdfs.enabled: "true"
+        HDFS-SITE.XML_dfs.namenode.datanode.registration.ip-hostname-check: "false"
+        HDFS-SITE.XML_dfs.namenode.avoid.read.stale.datanode: "true"
+        HDFS-SITE.XML_dfs.namenode.avoid.write.stale.datanode: "true"
+        HDFS-SITE.XML_dfs.namenode.stale.datanode.interval: "10000"
+        HDFS-SITE.XML_dfs.namenode.heartbeat.recheck-interval: "15000"
+      ENSURE_NAMENODE_DIR: /tmp/hadoop-root/dfs/name
+    networks: [scad-net]
+
+  datanode1:
+    image: apache/hadoop:3
+    hostname: datanode1
+    command: ["hdfs", "datanode"]
+    ports: ["9864:9864"]   # o agente de Nampula (PC2) escreve faturas neste DataNode
+    environment: *hdfs-env
+    depends_on: [namenode]
+    networks: [scad-net]
+
+  datanode2:
+    image: apache/hadoop:3
+    hostname: datanode2
+    command: ["hdfs", "datanode"]
+    ports: ["9865:9864"]   # o agente de Nampula (PC2) escreve faturas neste DataNode
+    environment: *hdfs-env
+    depends_on: [namenode]
+    networks: [scad-net]
+
+  datanode3:
+    image: apache/hadoop:3
+    hostname: datanode3
+    command: ["hdfs", "datanode"]
+    ports: ["9866:9864"]   # o agente de Nampula (PC2) escreve faturas neste DataNode
+    environment: *hdfs-env
+    depends_on: [namenode]
+    networks: [scad-net]
+
+  # ===================== CORBA (JacORB): Naming Service, Auditoria e robos de stock =====================
+  corba-naming:
+    build: ./corba
+    environment:
+      CLASSE: org.jacorb.naming.NameServer
+      JAVA_OPTS: -Djacorb.naming.ior_filename=/ior/NameService.ior
+    volumes: [corba-ior:/ior]
+    networks: [scad-net]
+
+  auditoria:
+    build: ./corba
+    environment:
+      CLASSE: mz.ac.isutc.scad.corba.ServidorAuditoria
+      JAVA_OPTS: -DORBInitRef.NameService=file:/ior/NameService.ior
+    volumes: [corba-ior:/ior]
+    depends_on: [corba-naming]
+    networks: [scad-net]
+
+  robo-maputo:
+    build: ./corba
+    environment:
+      CLASSE: mz.ac.isutc.scad.corba.RoboStock
+      JAVA_OPTS: -DORBInitRef.NameService=file:/ior/NameService.ior
+      REGIAO: Maputo
+      DB_URL: jdbc:postgresql://db-maputo:5432,db-maputo-rep:5432/scad?targetServerType=preferPrimary
+    volumes: [corba-ior:/ior]
+    depends_on: [corba-naming, auditoria, db-maputo]
+    networks: [scad-net]
+
+  robo-beira:
+    build: ./corba
+    environment:
+      CLASSE: mz.ac.isutc.scad.corba.RoboStock
+      JAVA_OPTS: -DORBInitRef.NameService=file:/ior/NameService.ior
+      REGIAO: Beira
+      DB_URL: jdbc:postgresql://db-beira:5432,db-beira-rep:5432/scad?targetServerType=preferPrimary
+    volumes: [corba-ior:/ior]
+    depends_on: [corba-naming, auditoria, db-beira]
+    networks: [scad-net]
+
+  robo-nampula:
+    build: ./corba
+    environment:
+      CLASSE: mz.ac.isutc.scad.corba.RoboStock
+      JAVA_OPTS: -DORBInitRef.NameService=file:/ior/NameService.ior
+      REGIAO: Nampula
+      # a base de dados de Nampula está no PC2: o robô liga-se a ela pela rede
+      DB_URL: jdbc:postgresql://${PC2}:5443,${PC2}:5453/scad?targetServerType=preferPrimary
+    volumes: [corba-ior:/ior]
+    depends_on: [corba-naming, auditoria]
+    networks: [scad-net]
+
+  # ===================== PONTE PARA O PC2 =====================
+  # Dentro da rede scad-net, o nome "agente-nampula" aponta para esta ponte,
+  # que reencaminha os pedidos para o agente de Nampula no PC2 (porta 8083).
+  ponte:
+    image: nginx:1.27-alpine
+    environment:
+      PC2: ${PC2}
+    volumes:
+      - ./multi/ponte-pc1.conf.template:/etc/nginx/templates/default.conf.template
+    networks:
+      scad-net:
+        aliases: [agente-nampula]
+
+networks:
+  scad-net:
+
+volumes:
+  dados-maputo:
+  dados-maputo-rep:
+  dados-beira:
+  dados-beira-rep:
+  corba-ior:

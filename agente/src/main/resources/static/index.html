@@ -144,6 +144,7 @@
   dialog .linha{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
   dialog .linha3{grid-template-columns:1fr 1fr 1fr}
   dialog label.todo{margin-bottom:12px}
+  label.vende{display:inline-flex;flex-direction:row;align-items:center;gap:6px;color:var(--ink);cursor:pointer}
   dialog input,dialog select{width:100%}
   dialog .fim{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
   .erro{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:14px;overflow-wrap:anywhere}
@@ -251,7 +252,7 @@
     <!-- ================= PRODUTOS ================= -->
     <section class="vista" id="v-produtos">
       <div class="titulo">
-        <div><h1>Produtos</h1><p>O catálogo é o mesmo nos 3 armazéns. Cada alteração fica guardada em todos ao mesmo tempo, ou em nenhum.</p></div>
+        <div><h1>Produtos</h1><p>Cada armazém tem os seus produtos: a ficha do produto está nos 3 nós, mas só tem stock nos armazéns que o vendem. Cada alteração fica guardada em todos ao mesmo tempo, ou em nenhum (2PC).</p></div>
         <div class="acoes"><input class="pesquisa" id="pesq" type="search" placeholder="Procurar por código ou nome" aria-label="Procurar produto"><button class="b prim" id="bNovo"><svg class="ic"><use href="/icones.svg#mais"/></svg>Novo produto</button></div>
       </div>
       <div class="card"><div class="tw"><table id="t-prod"></table></div></div>
@@ -353,7 +354,9 @@
     </div>
     <label class="todo">Preço por unidade (MZN)<input id="pPreco" type="number" min="0" max="10000000" step="0.01" required placeholder="Ex.: 1850.00"></label>
     <datalist id="unidades"><option>saco</option><option>caixa</option><option>garrafão</option><option>unidade</option></datalist>
-    <table><thead><tr><th>Armazém</th><th id="thStock">Stock inicial</th><th>Stock mínimo</th></tr></thead><tbody id="pReg"></tbody></table>
+    <table><thead><tr><th>Vende em</th><th id="thStock">Stock inicial</th><th>Stock mínimo</th></tr></thead><tbody id="pReg"></tbody></table>
+    <p id="pAviso" class="sec" style="margin:8px 0 0"></p>
+    <p class="sec" style="margin:4px 0 0">Quando o stock chega ao mínimo, o SCAD encomenda sozinho ao fornecedor. O mínimo e os armazéns podem ser alterados depois em Editar.</p>
     <div class="erro" id="pErro" hidden></div>
     <div class="fim"><button type="button" class="b" data-fechar>Cancelar</button><button type="submit" class="b prim" id="pOk">Guardar</button></div>
   </form>
@@ -478,7 +481,7 @@ function contar(el, valor) {
 }
 
 /* ---------- Dados ---------- */
-let ultimo = null, produtos = [];
+let ultimo = null, produtos = [], regioesEmBaixo = [];
 const historico = { Maputo: [], Beira: [], Nampula: [] };
 
 function construirProdutos(linhas) {
@@ -493,6 +496,8 @@ const nomeProduto = id => { const p = produtos.find(x => x.id === id); return p 
 
 function desenhar(r) {
   produtos = construirProdutos(r.stock.linhas);
+  // Um armazem sem linha de stock de um produto: ou nao o vende, ou o seu fragmento nao respondeu
+  regioesEmBaixo = REG.filter(g => (r.stock.fragmentosIndisponiveis || []).some(u => u.includes('agente-' + g.toLowerCase())));
   const m = r.nos.find(n => n.mestreBerkeley);
   if (m && m.hora) $('hora').textContent = horaLocal(m.hora);
   const baixos = r.stock.linhas.filter(l => l.abaixo_minimo);
@@ -551,9 +556,11 @@ function frase(a) {
     case 'ENTRADA': return `Entrada em ${reg}: ${qt ? qt[1].slice(1) : ''} de ${nomeProduto(id)}, ficam ${qt ? qt[2] : '?'}.`;
     case 'ENTREGA': return `Chegou mercadoria a ${reg}: ${qt ? qt[1].slice(1) : ''} de ${nomeProduto(id)}.`;
     case 'COMPRA-AUTO': return `${reg}, ${nomeProduto(id)}: ${resultadoCompra(d.split(' | ')[0].split(': ').slice(1).join(': '))}.`;
-    case 'PRODUTO-CRIADO': return `Produto registado nos 3 armazéns: ${d}.`;
-    case 'PRODUTO-EDITADO': return `Produto alterado nos 3 armazéns: ${d}.`;
-    case 'PRODUTO-APAGADO': return `Produto retirado dos 3 armazéns: ${d}.`;
+    case 'PRODUTO-CRIADO': case 'PRODUTO-EDITADO': {
+      const [prod, regs] = d.split(' | ');
+      return `Produto ${a.operacao === 'PRODUTO-CRIADO' ? 'registado' : 'alterado'}: ${prod}` + (regs ? `, à venda em ${listaReg(regs.split(','))}.` : '.');
+    }
+    case 'PRODUTO-APAGADO': return `Produto retirado de todos os armazéns: ${d}.`;
     case 'BERKELEY': return 'Os relógios dos armazéns foram acertados.';
     case '2PC-TERMINACAO': return `Operação pendente resolvida em ${reg}.`;
     default: return null;
@@ -589,10 +596,12 @@ function barras(linhas) {
 }
 
 /* ---------- Produtos ---------- */
-function celulaStock(l) {
-  if (!l) return '<span class="sec">sem ligação</span>';
+const vendeEm = p => REG.filter(r => p.reg[r]);
+const listaReg = rs => rs.length > 1 ? rs.slice(0, -1).join(', ') + ' e ' + rs[rs.length - 1] : (rs[0] || '');
+function celulaStock(l, r) {
+  if (!l) return regioesEmBaixo.includes(r) ? '<span class="sec">sem ligação</span>' : '<span class="sec" title="Este armazém não vende o produto">não vende</span>';
   const enc = l.em_encomenda ? ` <span class="sec">+${l.em_encomenda}</span>` : '';
-  return `<span class="${l.abaixo_minimo ? 'baixo' : ''}">${l.quantidade}</span><span class="sec"> / ${l.limite_minimo}</span>${enc}`;
+  return `<span title="Stock / mínimo"><span class="${l.abaixo_minimo ? 'baixo' : ''}">${l.quantidade}</span><span class="sec"> / ${l.limite_minimo}</span>${enc}</span>`;
 }
 function estadoProduto(p) {
   const ls = Object.values(p.reg);
@@ -609,7 +618,7 @@ function desenharProdutos() {
       const f = forn.find(x => x.id === p.fornecedor);
       const total = Object.values(p.reg).reduce((s, l) => s + l.quantidade, 0);
       return [`<b>${esc(p.nome)}</b><br><span class="sec">${esc(p.id)} · por ${esc(p.unidade)} · ${f ? esc(f.nome) : esc(p.fornecedor)}</span>`, `<span class="preco">${mzn(p.preco)}</span>`,
-        ...REG.map(r => celulaStock(p.reg[r])), `<b>${num(total)}</b>`, estadoProduto(p),
+        ...REG.map(r => celulaStock(p.reg[r], r)), `<b>${num(total)}</b>`, estadoProduto(p),
         `<div class="acoes"><button class="b peq prim" data-a="vender" data-id="${esc(p.id)}"><svg class="ic"><use href="/icones.svg#venda"/></svg>Vender</button><button class="b peq" data-a="entrada" data-id="${esc(p.id)}" title="Dar entrada" aria-label="Dar entrada"><svg class="ic"><use href="/icones.svg#entrada"/></svg></button><button class="b peq" data-a="editar" data-id="${esc(p.id)}" title="Editar" aria-label="Editar"><svg class="ic"><use href="/icones.svg#editar"/></svg></button><button class="b peq perigo" data-a="apagar" data-id="${esc(p.id)}" title="Apagar" aria-label="Apagar"><svg class="ic"><use href="/icones.svg#lixo"/></svg></button></div>`];
     }), q ? 'Nenhum produto encontrado.' : 'Sem produtos. Regista o primeiro.');
 }
@@ -630,31 +639,52 @@ function abrirProduto(p) {
   $('pPreco').value = p ? Number(p.preco).toFixed(2) : '';
   $('pForn').innerHTML = ultimo.catalogoFornecedores.map(f => `<option value="${esc(f.id)}">${esc(f.nome)}</option>`).join('');
   if (p) $('pForn').value = p.fornecedor;
+  // Cada armazem escolhe se vende o produto; so os escolhidos ficam com linha no seu fragmento de stock
   $('pReg').innerHTML = REG.map(r => {
-    const l = p && p.reg[r];
-    return `<tr><td>${r}</td><td><input type="number" data-q="${r}" min="0" max="100000" required value="${l ? l.quantidade : 100}" ${p ? 'disabled' : ''} aria-label="Stock em ${r}"></td>
+    const l = p && p.reg[r], emBaixo = regioesEmBaixo.includes(r);
+    const marcado = p ? !!l : !emBaixo;
+    return `<tr><td><label class="vende"><input type="checkbox" data-v="${r}" ${marcado ? 'checked' : ''} ${emBaixo ? 'disabled' : ''}> ${r}</label>${emBaixo ? ' <span class="sec">sem ligação</span>' : ''}</td>
+      <td><input type="number" data-q="${r}" min="0" max="100000" required value="${l ? l.quantidade : 100}" data-fixo="${l ? 1 : 0}" aria-label="Stock em ${r}"></td>
       <td><input type="number" data-m="${r}" min="1" max="100000" required value="${l ? l.limite_minimo : 30}" aria-label="Mínimo em ${r}"></td></tr>`;
   }).join('');
+  REG.forEach(r => { document.querySelector(`[data-v="${r}"]`).onchange = estadoLinhasProduto; });
+  estadoLinhasProduto();
   $('pErro').hidden = true;
   $('dProd').showModal();
   $('pNome').focus();
+}
+/* Armazem desmarcado: sem stock nem minimo. Stock atual so se edita por vendas e entradas. */
+function estadoLinhasProduto() {
+  REG.forEach(r => {
+    const v = document.querySelector(`[data-v="${r}"]`).checked;
+    const q = document.querySelector(`[data-q="${r}"]`), m = document.querySelector(`[data-m="${r}"]`);
+    q.disabled = !v || q.dataset.fixo === '1'; m.disabled = !v;
+  });
+  const sai = produtoEmEdicao ? REG.filter(r => produtoEmEdicao.reg[r] && !document.querySelector(`[data-v="${r}"]`).checked) : [];
+  $('pAviso').innerHTML = sai.length
+    ? `Deixa de ser vendido em ${esc(listaReg(sai))}: o stock que lá houver sai do sistema.`
+    : 'Os armazéns desmarcados não vendem este produto e os clientes não o veem lá.';
+  $('pAviso').className = sai.length ? 'erro' : 'sec';
 }
 $('bNovo').onclick = () => abrirProduto();
 $('fProd').onsubmit = async e => {
   e.preventDefault();
   const regioes = {};
-  REG.forEach(r => {
+  REG.filter(r => document.querySelector(`[data-v="${r}"]`).checked).forEach(r => {
     regioes[r] = { limiteMinimo: Number(document.querySelector(`[data-m="${r}"]`).value) };
-    if (!produtoEmEdicao) regioes[r].quantidade = Number(document.querySelector(`[data-q="${r}"]`).value);
+    // stock inicial: ao registar, ou num armazem que passa a vender o produto
+    if (!produtoEmEdicao || !produtoEmEdicao.reg[r]) regioes[r].quantidade = Number(document.querySelector(`[data-q="${r}"]`).value);
   });
+  const escolhidos = Object.keys(regioes);
+  if (!escolhidos.length) { $('pErro').textContent = 'Escolha pelo menos um armazém que venda o produto. Para o retirar de todos, use Apagar.'; $('pErro').hidden = false; return; }
   const corpo = { nome: $('pNome').value, unidade: $('pUni').value, preco: Number($('pPreco').value), fornecedorId: $('pForn').value, regioes };
-  $('pOk').disabled = true; $('pOk').textContent = 'A gravar nos 3 armazéns...'; $('pErro').hidden = true;
+  $('pOk').disabled = true; $('pOk').textContent = 'A gravar (2PC nos 3 nós)...'; $('pErro').hidden = true;
   try {
     const r = produtoEmEdicao
       ? await pedir('/painel/produtos/' + encodeURIComponent(produtoEmEdicao.id), 'PUT', corpo)
       : await pedir('/painel/produtos', 'POST', corpo);
     $('dProd').close();
-    aviso(`${corpo.nome} (${r.id}) ${produtoEmEdicao ? 'alterado' : 'registado'} nos 3 armazéns.`);
+    aviso(`${corpo.nome} (${r.id}) ${produtoEmEdicao ? 'alterado' : 'registado'}: à venda em ${listaReg(escolhidos)}.`);
     atualizar();
   } catch (err) { $('pErro').textContent = erroTx(err); $('pErro').hidden = false; }
   $('pOk').disabled = false; $('pOk').textContent = 'Guardar';
@@ -665,7 +695,7 @@ function abrirApagar(p) {
   produtoApagar = p;
   const total = Object.values(p.reg).reduce((s, l) => s + l.quantidade, 0);
   $('dApagarTit').textContent = `Apagar ${p.nome}?`;
-  $('dApagarTxt').textContent = `Sai do catálogo dos 3 armazéns, com ${num(total)} unidades em stock. As ordens e faturas antigas ficam guardadas. Não é possível apagar enquanto houver uma encomenda a caminho.`;
+  $('dApagarTxt').textContent = `Deixa de ser vendido em ${listaReg(vendeEm(p)) || 'nenhum armazém'}, com ${num(total)} unidades em stock. As ordens e faturas antigas ficam guardadas. Não é possível apagar enquanto houver uma encomenda a caminho.`;
   $('aErro').hidden = true;
   $('dApagar').showModal();
 }
@@ -675,7 +705,7 @@ $('fApagar').onsubmit = async e => {
   try {
     await pedir('/painel/produtos/' + encodeURIComponent(produtoApagar.id), 'DELETE');
     $('dApagar').close();
-    aviso(`${produtoApagar.nome} apagado dos 3 armazéns.`);
+    aviso(`${produtoApagar.nome} apagado de todos os armazéns.`);
     atualizar();
   } catch (err) { $('aErro').textContent = erroTx(err); $('aErro').hidden = false; }
   $('aOk').disabled = false;
@@ -695,7 +725,8 @@ function abrirMov(p, tipo) {
   movProduto = p; movTipo = tipo;
   $('dMovTit').textContent = `${tipo === 'SAIDA' ? 'Vender' : 'Dar entrada de'} ${p.nome}`;
   $('mOk').textContent = tipo === 'SAIDA' ? 'Registar venda' : 'Dar entrada';
-  $('mRegiao').innerHTML = REG.map(r => `<option>${r}</option>`).join('');
+  // So os armazens que vendem o produto
+  $('mRegiao').innerHTML = vendeEm(p).map(r => `<option>${r}</option>`).join('');
   $('mErro').hidden = true;
   atualizarDispMov();
   $('dMov').showModal();
@@ -703,7 +734,7 @@ function abrirMov(p, tipo) {
 }
 function atualizarDispMov() {
   const l = movProduto && movProduto.reg[$('mRegiao').value];
-  $('mDisp').textContent = l ? `Stock em ${l.regiao}: ${l.quantidade} ${movProduto.unidade} (mínimo ${l.limite_minimo}).` : 'Este armazém não responde.';
+  $('mDisp').textContent = l ? `Stock em ${l.regiao}: ${l.quantidade} ${movProduto.unidade} (mínimo ${l.limite_minimo}).` : 'Nenhum armazém ligado vende este produto.';
 }
 $('mRegiao').onchange = atualizarDispMov;
 $('fMov').onsubmit = async e => {
@@ -719,8 +750,10 @@ $('fMov').onsubmit = async e => {
 function atualizarOpcoesVenda() {
   if (!$('vRegiao').options.length) $('vRegiao').innerHTML = REG.map(r => `<option>${r}</option>`).join('');
   const atual = $('vProduto').value;
-  html($('vProduto'), produtos.map(p => `<option value="${esc(p.id)}">${esc(p.id)} · ${esc(p.nome)}</option>`).join(''));
-  if (produtos.some(p => p.id === atual)) $('vProduto').value = atual;
+  const doArmazem = produtos.filter(p => p.reg[$('vRegiao').value]);
+  html($('vProduto'), doArmazem.length ? doArmazem.map(p => `<option value="${esc(p.id)}">${esc(p.id)} · ${esc(p.nome)}</option>`).join('')
+    : '<option value="">Este armazém ainda não vende produtos</option>');
+  if (doArmazem.some(p => p.id === atual)) $('vProduto').value = atual;
   const p = produtos.find(x => x.id === $('vProduto').value);
   const l = p && p.reg[$('vRegiao').value];
   $('vDisp').textContent = l ? `Stock de ${p.nome} em ${l.regiao}: ${l.quantidade} ${p.unidade}, mínimo ${l.limite_minimo}.` : '';
@@ -877,7 +910,7 @@ const FALHAS = [
 function passosGuiao() {
   return [
     { t: 'O que é o SCAD', d: 'Abre o Início: 3 armazéns, cada um com a sua base de dados. O stock de cada região só existe no seu nó (fragmentação horizontal) e tem uma réplica.', b: [['Abrir Início', () => abrirVista('inicio')], ['Ver estado dos nós', () => abrirVista('sistema')]] },
-    { t: 'Gerir produtos (2PC)', d: 'Regista um produto: fica gravado nos 3 armazéns ou em nenhum. O código é atribuído pelo sistema.', b: [['Registar produto', () => { abrirVista('produtos'); abrirProduto(); }]] },
+    { t: 'Gerir produtos (2PC)', d: 'Regista um produto e escolhe os armazéns que o vendem. A ficha fica nos 3 nós e o stock só nos armazéns escolhidos, tudo numa transação 2PC: ou fica em todos, ou em nenhum. O código é atribuído pelo sistema.', b: [['Registar produto', () => { abrirVista('produtos'); abrirProduto(); }]] },
     { t: 'O cliente faz um pedido', d: 'Na área do cliente, uma instituição (por exemplo, um hospital) pede um ou vários produtos a um armazém. O stock desce; quando atinge o mínimo, o monitor deteta e o SCAD encomenda ao fornecedor sozinho. A mercadoria chega 30 s depois. Acompanha em Vendas e entradas e em Compras.', b: [['Abrir a área do cliente', () => window.open('/loja.html', '_blank', 'noopener')], ['Ver Compras', () => abrirVista('compras')], ['Atalho: vender até ao mínimo em Maputo', () => venderAteMinimo('REST', ['Maputo'])]] },
     { t: 'Exclusão mútua (Ricart-Agrawala)', d: 'Dois armazéns detetam a falta do mesmo produto ao mesmo tempo. Só um compra o lote, por REST/JSON; o outro vê que já foi comprado e não duplica.', b: [['Compra simultânea Maputo + Beira', () => compraSimultanea()]] },
     { t: 'Fornecedor legado (SOAP/XML)', d: 'Os produtos do segundo fornecedor seguem pela rota SOAP, com contrato WSDL.', b: [['Compra por SOAP em Nampula', () => venderAteMinimo('SOAP', ['Nampula'], true)], ['Abrir WSDL', () => window.open('http://localhost:8092/ws?wsdl', '_blank', 'noopener')]] },
@@ -941,9 +974,11 @@ function linhaComando(cmd) {
   d.append(c, botaoCopiar(cmd));
   return d;
 }
-function produtoDoTipo(tipo) {
+function produtoDoTipo(tipo, regioes = []) {
   const ids = ultimo.catalogoFornecedores.filter(f => f.tipo_integracao === tipo).map(f => f.id);
-  const p = produtos.find(x => ids.includes(x.fornecedor));
+  const doTipo = produtos.filter(x => ids.includes(x.fornecedor));
+  // de preferencia um produto vendido em todos os armazens pedidos
+  const p = doTipo.find(x => regioes.every(r => x.reg[r])) || doTipo[0];
   if (!p) throw new Error(`Não há nenhum produto do fornecedor ${tipo}.`);
   return p;
 }
@@ -952,7 +987,7 @@ async function baixarAteMinimo(p, regioes) {
   const out = [];
   for (const r of regioes) {
     const l = p.reg[r];
-    if (!l) { out.push(`${r}: sem ligação`); continue; }
+    if (!l) { out.push(`${r}: ${regioesEmBaixo.includes(r) ? 'sem ligação' : 'não vende este produto'}`); continue; }
     const vender = l.quantidade - l.limite_minimo;
     if (vender <= 0) { out.push(`${r}: já está no mínimo (${l.quantidade})`); continue; }
     await movimentar(r, p.id, 'SAIDA', vender);
@@ -962,7 +997,7 @@ async function baixarAteMinimo(p, regioes) {
 }
 const textoCompra = l => l.map(x => `▶ ${x.no}: ${x.resultado || 'sem compra'}\n` + (x.passos || []).map(p => '   ' + p).join('\n')).join('\n\n');
 async function venderAteMinimo(tipo, regioes, aguardar) {
-  const p = produtoDoTipo(tipo);
+  const p = produtoDoTipo(tipo, regioes);
   const out = await baixarAteMinimo(p, regioes);
   const cab = `${p.nome}\n` + out.join('\n');
   if (!aguardar) return cab + '\nO monitor deteta em poucos segundos e compra sozinho.';
@@ -970,8 +1005,8 @@ async function venderAteMinimo(tipo, regioes, aguardar) {
 }
 async function compraSimultanea() {
   // De preferencia um produto diferente do passo anterior, que ainda pode ter encomenda a caminho
-  const candidato = produtos.find(x => !Object.values(x.reg).some(l => l.em_encomenda) && ultimo.catalogoFornecedores.some(f => f.id === x.fornecedor && f.tipo_integracao === 'REST')) || produtoDoTipo('REST');
   const regioes = ['Maputo', 'Beira'];
+  const candidato = produtos.find(x => regioes.every(r => x.reg[r]) && !Object.values(x.reg).some(l => l.em_encomenda) && ultimo.catalogoFornecedores.some(f => f.id === x.fornecedor && f.tipo_integracao === 'REST')) || produtoDoTipo('REST', regioes);
   const out = await baixarAteMinimo(candidato, regioes);
   return `${candidato.nome}\n${out.join('\n')}\n\n` + textoCompra(await pedir('/painel/compra?' + new URLSearchParams({ produtoId: candidato.id, regioes: regioes.join(',') })));
 }

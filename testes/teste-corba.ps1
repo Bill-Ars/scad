@@ -20,7 +20,7 @@ function Consulta($produto) {
 Titulo "TESTE 1 - Registo no Naming Service e alertas iniciais"
 docker compose logs auditoria robo-maputo robo-beira robo-nampula 2>$null |
     Select-String "\[AUDITORIA\]|\[ROBO"
-Write-Host "Esperado: auditoria e 3 robos registados; alertas de P2 (Maputo, Beira) e P4 (Nampula)." -ForegroundColor Green
+Write-Host "Esperado: auditoria e 3 robos registados; so ha alertas se algum stock estiver no minimo." -ForegroundColor Green
 Read-Host "Carrega em Enter para o teste 2"
 
 # ---------------------------------------------------------------------
@@ -35,7 +35,7 @@ docker compose exec -T db-nampula psql -U postgres -d scad -c "UPDATE stock SET 
 Write-Host "A aguardar 12 s (o robo verifica o stock de 10 em 10 s)..."
 Start-Sleep -Seconds 12
 docker compose logs --since 30s auditoria robo-nampula 2>$null | Select-String "\[AUDITORIA\]|\[ROBO"
-Write-Host "Esperado: o robo de Nampula chama dispararAlerta (oneway) e a auditoria regista P1." -ForegroundColor Green
+Write-Host "Esperado: o robo de Nampula chama dispararAlerta (oneway) e a auditoria regista P1; o agente tambem compra sozinho." -ForegroundColor Green
 Read-Host "Carrega em Enter para o teste 4"
 
 # ---------------------------------------------------------------------

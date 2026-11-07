@@ -4,7 +4,7 @@
 // =====================================================================
 module SCAD {
 
-    // Alerta enviado por um robo quando um produto fica abaixo do stock minimo
+    // Alerta enviado por um robo quando um produto atinge o stock minimo
     struct AlertaStock {
         string    produtoId;
         string    regiao;

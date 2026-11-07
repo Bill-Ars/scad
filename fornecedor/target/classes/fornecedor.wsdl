@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Contrato WSDL 1.1 (document/literal) do fornecedor legado do SCAD -->
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  xmlns:f="http://scad.isutc.ac.mz/fornecedor"
+                  targetNamespace="http://scad.isutc.ac.mz/fornecedor"
+                  name="FornecedorService">
+
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://scad.isutc.ac.mz/fornecedor" elementFormDefault="qualified">
+      <xsd:element name="EnviarOrdemRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="ordemId"    type="xsd:string"/>
+            <xsd:element name="produtoId"  type="xsd:string"/>
+            <xsd:element name="quantidade" type="xsd:positiveInteger"/>
+            <xsd:element name="regiao"     type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="EnviarOrdemResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="ordemId"         type="xsd:string"/>
+            <xsd:element name="estado"          type="xsd:string"/>
+            <xsd:element name="fornecedor"      type="xsd:string"/>
+            <xsd:element name="previsaoEntrega" type="xsd:date"/>
+            <xsd:element name="repetida"        type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+
+  <wsdl:message name="EnviarOrdemRequest">
+    <wsdl:part name="parameters" element="f:EnviarOrdemRequest"/>
+  </wsdl:message>
+  <wsdl:message name="EnviarOrdemResponse">
+    <wsdl:part name="parameters" element="f:EnviarOrdemResponse"/>
+  </wsdl:message>
+
+  <wsdl:portType name="FornecedorPortType">
+    <wsdl:operation name="EnviarOrdem">
+      <wsdl:input  message="f:EnviarOrdemRequest"/>
+      <wsdl:output message="f:EnviarOrdemResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="FornecedorSoapBinding" type="f:FornecedorPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="EnviarOrdem">
+      <soap:operation soapAction="http://scad.isutc.ac.mz/fornecedor/EnviarOrdem"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="FornecedorService">
+    <wsdl:port name="FornecedorPort" binding="f:FornecedorSoapBinding">
+      <soap:address location="http://fornecedor-soap:8080/ws"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
